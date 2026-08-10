@@ -295,39 +295,142 @@ de validação e entrega utilidade desde o primeiro dia.
 
 ---
 
-## 10. Plano ajustado
+## 10. Plano de execução (usuário sem conhecimento de programação)
 
-**Fase 0 — Definição e medição (sem GPU, sem nuvem, custo zero)**
-Escolher o tipo documental e fechar o esquema de 8 a 12 campos. Montar 25 PDFs com gabarito
-manual. Escrever o harness de avaliação. Nada mais.
+Premissa: o usuário não programa e não vai programar. Toda a construção técnica é minha. O
+usuário contribui exclusivamente com aquilo que só ele pode fazer — decidir o que o sistema
+precisa encontrar e julgar se o resultado está certo.
 
-**Fase 1 — Pipeline de texto nativo**
-Extração da camada de texto (PyMuPDF/pdfplumber) → Qwen3.5-9B → validação de ancoragem →
-JSON e Excel. Medir contra o gabarito. É só aqui que se descobre se um modelo de visão é
-mesmo necessário, e para qual fração dos documentos.
+Princípio de ordenação: **provar o valor antes de contratar infraestrutura.** O plano
+original levava à contratação de GPU antes de qualquer evidência de que o sistema funciona
+nos documentos reais do usuário. A ordem correta é a inversa.
 
-**Fase 2 — Visão, apenas onde a medição mostrar necessidade**
-Acrescentar PaddleOCR-VL-1.6 para os documentos digitalizados que reprovaram na fase 1.
-Medir de novo, contra o mesmo gabarito.
+### Etapa 1 — Definição dos campos
+**Usuário:** escolhe um tipo documental e lista, em linguagem comum, o que precisa ser
+extraído. Não é preciso formato técnico — uma lista basta.
+**Eu:** converto em esquema técnico, defino tipos, formatos de normalização e vocabulário de
+status; devolvo em linguagem comum para conferência.
+Esforço do usuário: 1 a 2 horas. Ferramenta: nenhuma.
 
-**Fase 3 — Interface e endurecimento**
+### Etapa 2 — Pasta de documentos de teste
+**Usuário:** reúne 25 a 30 documentos daquele tipo, fictícios, públicos ou descaracterizados.
+Apenas juntar arquivos numa pasta.
+**Eu:** verifico se há mistura suficiente de PDF com camada de texto e digitalizado.
+Esforço do usuário: 1 hora. Ferramenta: nenhuma.
+
+### Etapa 3 — Gabarito
+**Eu:** gero uma planilha Excel pronta, uma linha por documento, uma coluna por campo.
+**Usuário:** preenche à mão a resposta correta de cada campo, lendo cada documento, e marca
+os campos que legitimamente não existem naquele documento.
+
+Esta é a única parte genuinamente trabalhosa e a única que ninguém pode fazer no lugar do
+usuário — é conhecimento jurídico, não técnico. É também o ativo mais duradouro do projeto:
+serve para medir todas as versões futuras do sistema.
+Esforço do usuário: 4 a 8 horas, divisíveis. Ferramenta: Excel.
+
+### Etapa 4 — Prova de conceito sem infraestrutura
+**Eu:** rodo a extração sobre os 25 documentos e comparo automaticamente com o gabarito.
+Relatório por campo: taxa de acerto, erros, alucinações, campos que o sistema deveria ter
+deixado em branco e não deixou.
+**Usuário:** nada.
+
+Nesta etapa a extração roda com o modelo já disponível no ambiente de trabalho, e não com o
+modelo auto-hospedado. Isso é intencional: com documentos fictícios não há risco, e o que se
+está testando é se o **esquema e o método** funcionam. Trocar o motor por Qwen3.5 depois é
+substituição de peça, não reconstrução.
+Custo de infraestrutura: zero.
+
+### Etapa 5 — Decisão informada
+Com números concretos em mãos, o usuário decide se prossegue. Resultados típicos e o que
+fazer com cada um:
+
+- Maioria dos campos acima de 95% → prosseguir, com revisão humana nos campos fracos.
+- Parte boa, parte ruim → prosseguir com escopo reduzido aos campos que funcionam.
+- Tudo ruim → o problema está no esquema ou no tipo documental; corrigir na Etapa 1, sem ter
+  gasto nada com servidor.
+
+### Etapa 6 — Infraestrutura
+Só aqui se decide onde o sistema vai morar, e a decisão passa a ser informada pelo tamanho de
+modelo que a Etapa 4 mostrou necessário. Ver item 5.3 e o item 12 abaixo, sobre o custo
+operacional recorrente que recai sobre um usuário não técnico.
+
+### Etapa 7 — Interface
+Tela de envio do PDF, campos extraídos ao lado com página e trecho de origem, botões de
+confirmar/corrigir/marcar como inexistente, exportação em JSON e Excel. Sem realce visual no
+PDF na primeira versão (item 8).
+
+### Etapa 8 — Endurecimento e entrada de dados reais
 Autenticação, criptografia em repouso, expurgo automático, registro de auditoria, bloqueio de
-saída de rede do contêiner, política de retenção. Só ao fim desta fase entra documento real,
-e só depois de decidida a questão de hospedagem do item 5.3.
+saída de rede do contêiner, política de retenção. Documento real só depois desta etapa
+concluída e revisada.
 
-**Fase 4 — Ampliação**
-Novos tipos documentais, lote, comparação entre documentos, API, perfil de saída mascarado
-para uso com modelos de fronteira (item 2.1).
+### Etapa 9 — Ampliação
+Novos tipos documentais, processamento em lote, comparação entre documentos, API, e perfil de
+saída mascarado para uso com modelos de fronteira (item 2.1).
 
 ---
 
-## 11. Decisões necessárias antes de prosseguir
+## 11. Divisão de trabalho, consolidada
 
-1. **Qual tipo documental e quais campos exatos.** A proposta acertou ao identificar esta
-   como a decisão primeira — ela determina o resto da arquitetura.
+| Etapa | Usuário | Eu |
+|---|---|---|
+| 1. Campos | Lista o que extrair | Converto em esquema técnico |
+| 2. Documentos | Junta 25–30 PDFs | Verifico a amostra |
+| 3. Gabarito | Preenche planilha à mão | Gero a planilha e o comparador |
+| 4. Prova de conceito | — | Rodo e meço |
+| 5. Decisão | Decide seguir ou ajustar | Apresento os números |
+| 6. Infraestrutura | Contrata e paga | Especifico, configuro, documento |
+| 7. Interface | Testa e aponta o que incomoda | Construo |
+| 8. Endurecimento | Contrata revisão independente | Implemento e documento |
 
-2. **Qual a natureza do material que o sistema tratará em produção** — documento de cliente
-   sob sigilo profissional, material de órgão público, ou documento próprio. Esta decisão não
-   apareceu na proposta e é a que determina se nuvem estrangeira é viável ou se será preciso
-   AWS São Paulo ou máquina local. Ela precisa ser tomada **antes**, porque muda o desenho de
-   armazenamento, de log e de expurgo — não é algo que se acrescenta ao final.
+Nenhuma linha da coluna do usuário exige programação. Nenhuma exige uso de terminal, salvo o
+que está descrito no item 12.
+
+---
+
+## 12. Custo operacional recorrente sobre um usuário não técnico
+
+Este ponto foi omitido na proposta original ("você precisaria apenas criar a conta, contratar
+a máquina, adicionar uma chave e executar a implantação") e é o que mais importa para quem
+não programa.
+
+Um sistema auto-hospedado com GPU **não é um aplicativo que se instala e esquece.** Servidores
+reiniciam, atualizações quebram dependências, faturas sobem se a máquina fica ligada por
+esquecimento. Em algum momento algo para de funcionar e alguém precisa agir. As opções reais:
+
+1. **Máquina no escritório.** Depois de configurada, comporta-se como um equipamento fixo —
+   liga e funciona. Sem fatura mensal variável, sem servidor que some, e o documento nunca
+   sai da sala, que é o argumento mais forte diante do sigilo profissional. Custo inicial alto;
+   se o equipamento falhar, exige assistência técnica.
+
+2. **Nuvem com rotina de ligar e desligar.** Menor custo inicial, mas gera fatura mensal e
+   exige que o usuário ligue e desligue a máquina, ou aceite pagar por ela ociosa. Mais peças
+   móveis, mais pontos de falha.
+
+3. **Apoio técnico contratado por horas.** Independentemente da opção acima, é prudente ter
+   alguém a quem recorrer. Poucas horas por mês bastam para manutenção de rotina.
+
+Em qualquer cenário, produzirei documentação de operação em linguagem comum — como ligar,
+desligar, verificar se está funcionando e o que fazer quando não estiver — de modo que o
+próprio usuário ou qualquer profissional de TI consiga agir sem depender de mim.
+
+Recomendação: decidir entre 1 e 2 apenas na Etapa 6, quando a Etapa 4 já tiver revelado o
+tamanho de modelo necessário — que é o que determina o preço do equipamento.
+
+---
+
+## 13. Decisões necessárias para começar
+
+Apenas duas, e ambas são jurídicas, não técnicas:
+
+1. **Qual tipo documental e quais campos.** Determina toda a arquitetura. Basta uma lista em
+   linguagem comum.
+
+2. **Qual a natureza do material em produção** — documento de cliente sob sigilo profissional,
+   material de órgão público, ou documento próprio. Não apareceu na proposta original e é o
+   que determina se nuvem estrangeira é viável ou se será preciso AWS São Paulo ou máquina
+   local. Precisa ser decidida antes da Etapa 6, porque muda o desenho de armazenamento, de
+   registro e de expurgo — não é algo que se acrescente ao final.
+
+A segunda não bloqueia o início: as Etapas 1 a 5 usam apenas documentos fictícios e independem
+dela.
