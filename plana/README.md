@@ -96,15 +96,20 @@ latência de acesso a partir do Acre.
    git clone <repositório> /opt/plana && cd /opt/plana
    ```
 
-3. **Configure o `.env`** ao lado do `docker-compose.yml`:
+3. **Gere o `.env`** — ele pergunta o domínio e sorteia as senhas:
 
    ```bash
-   DOMINIO=planaeventos.app
-   PUBLIC_ORIGIN=https://planaeventos.app
-   POSTGRES_PASSWORD=$(openssl rand -base64 24)
-   AUTH_SECRET=$(openssl rand -base64 48)
-   # e as três variáveis VAPID de `npm run chaves:vapid`
+   bash scripts/preparar-env.sh
    ```
+
+   As chaves de push ficam vazias por ora; sem elas o push fica desligado e a
+   central de notificações interna continua funcionando. Para ligá-lo depois:
+
+   ```bash
+   docker compose run --rm migracoes npm run chaves:vapid
+   ```
+
+   Copie as três linhas para o `.env` e rode `docker compose up -d` de novo.
 
 4. **Suba:**
 

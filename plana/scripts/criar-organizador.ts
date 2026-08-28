@@ -16,7 +16,11 @@ import { hashDeSenha } from "../src/lib/sessao";
 import { codigoUsuario } from "../src/lib/codigos";
 
 async function principal() {
-  const [email, nome] = process.argv.slice(2);
+  // O nome junta todos os argumentos restantes: quem digita o comando nem
+  // sempre põe aspas, e "Leonardo Vasconcelos" sem elas chegaria pela metade.
+  const [email, ...partesDoNome] = process.argv.slice(2);
+  const nome = partesDoNome.join(" ").trim();
+
   if (!email || !nome) {
     console.error('uso: npm run organizador -- email@dominio "Nome Completo"');
     process.exit(1);
