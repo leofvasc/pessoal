@@ -162,7 +162,9 @@ prática, no código:
   próprias constantes que o código aplica, e não de texto copiado — a página não
   consegue descrever uma regra diferente da executada.
 - **Nada guardado à toa.** O PDF do certificado não é armazenado: é montado a
-  cada download.
+  cada download. Da mesma forma, a tabela de códigos aposentados guarda só o
+  código — não de quem ele era: essa ligação não serviria à finalidade de
+  impedir a reatribuição, e portanto não se guarda.
 - **Arquivo não é público por descuido.** Os envios do gestor ficam fora de
   `public/` e passam por `/arquivos/[id]`, que decide por uso: logotipo e banner
   são públicos; material de apoio é só de quem está inscrito no evento; a

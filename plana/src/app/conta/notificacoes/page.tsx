@@ -8,6 +8,7 @@ import { marcarTodasComoLidas } from "@/app/acoes-notificacoes";
 export const metadata = { title: "Notificações" };
 
 const ROTULOS = {
+  SEGURANCA_CONTA: "sua conta",
   INSCRICAO_CONFIRMADA: "inscrição",
   PRESENCA_REGISTRADA: "presença",
   CERTIFICADO_DISPONIVEL: "certificado",

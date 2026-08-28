@@ -42,7 +42,13 @@ model Usuario {
   /// É o que ele digita para registrar presença à distância em evento online
   /// ou híbrido, quando não há QR Code projetado para ler. Fica visível na
   /// área da conta como "Seu código de usuário".
-  codigoUsuario String @unique
+  ///
+  /// Pode ser trocado pelo próprio titular quando ele suspeitar de vazamento.
+  /// Como o código vive só aqui — presenças e certificados ligam pelo id da
+  /// conta —, a troca vale imediatamente em toda a plataforma, e nada do que
+  /// já foi registrado se perde.
+  codigoUsuario          String    @unique
+  codigoUsuarioTrocadoEm DateTime?
 
   perfil Perfil
 
@@ -346,11 +352,25 @@ model Certificado {
   totalEmissoes     Int       @default(0)
 }
 
+/// Códigos pessoais já aposentados.
+///
+/// Guarda apenas o código, sem vínculo com a conta que o usou: a finalidade é
+/// uma só — impedir que um código trocado por suspeita de vazamento volte a
+/// circular, sorteado para outra pessoa. Guardar de quem ele era não serviria a
+/// essa finalidade, e portanto não se guarda.
+model CodigoUsuarioAposentado {
+  codigo       String   @id
+  aposentadoEm DateTime @default(now())
+}
+
 // ---------------------------------------------------------------------------
 // Comunicação
 // ---------------------------------------------------------------------------
 
 enum TipoNotificacao {
+  /// Alteração relevante na própria conta, como a troca do código pessoal.
+  /// Serve para o titular perceber uma mudança que não tenha sido ele a fazer.
+  SEGURANCA_CONTA
   INSCRICAO_CONFIRMADA
   PRESENCA_REGISTRADA
   CERTIFICADO_DISPONIVEL

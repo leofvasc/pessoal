@@ -12,7 +12,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { abrirSessao, encerrarSessao, hashDeSenha, conferirSenha } from "@/lib/sessao";
 import { registrarConsentimento } from "@/lib/consentimento";
-import { codigoUsuario } from "@/lib/codigos";
+import { sortearCodigoLivre } from "@/lib/codigo-de-usuario";
 
 export type EstadoFormulario = { erro?: string; campos?: Record<string, string> };
 
@@ -58,23 +58,6 @@ const esquemaCriacao = z
 function destinoSeguro(valor: string): string | null {
   if (!valor.startsWith("/") || valor.startsWith("//")) return null;
   return valor;
-}
-
-/**
- * Sorteia um código pessoal até achar um livre. A colisão é improvável
- * (25^8 combinações), mas o campo é único no banco: sem a checagem, o azar
- * viraria erro na cara de quem está criando a conta.
- */
-async function codigoUsuarioLivre(): Promise<string> {
-  for (let tentativa = 0; tentativa < 10; tentativa++) {
-    const candidato = codigoUsuario();
-    const existe = await prisma.usuario.findUnique({
-      where: { codigoUsuario: candidato },
-      select: { id: true },
-    });
-    if (!existe) return candidato;
-  }
-  throw new Error("Não foi possível gerar um código de usuário livre.");
 }
 
 function texto(dados: FormData, chave: string): string {
@@ -132,7 +115,7 @@ export async function criarConta(
       telefone,
       // Código pessoal, usado para registrar presença a distância em evento
       // online ou híbrido. Fica visível na área da conta.
-      codigoUsuario: await codigoUsuarioLivre(),
+      codigoUsuario: await sortearCodigoLivre(),
     },
     select: { id: true, nome: true, papel: true },
   });

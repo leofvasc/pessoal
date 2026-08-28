@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { exigirSessao } from "@/lib/sessao";
 import { Cartao, Etiqueta, Titulo } from "@/components/ui";
-import { dataLongaAcre, etiquetaDoisFusos } from "@/lib/fuso";
+import { dataLongaAcre, etiquetaDoisFusos, formatarEm, FUSO_ACRE } from "@/lib/fuso";
 import { AvisoInstalacaoIOS } from "@/components/AvisoInstalacaoIOS";
 import { CodigoDeUsuario } from "@/components/CodigoDeUsuario";
 
@@ -38,7 +38,7 @@ export default async function PaginaConta() {
   const [conta, { proximos, passados }] = await Promise.all([
     prisma.usuario.findUniqueOrThrow({
       where: { id: sessao.usuarioId },
-      select: { codigoUsuario: true },
+      select: { codigoUsuario: true, codigoUsuarioTrocadoEm: true },
     }),
     carregarInscricoes(sessao.usuarioId),
   ]);
@@ -47,7 +47,14 @@ export default async function PaginaConta() {
     <>
       <Titulo>Olá, {sessao.nome.split(" ")[0]}</Titulo>
 
-      <CodigoDeUsuario codigo={conta.codigoUsuario} />
+      <CodigoDeUsuario
+        codigo={conta.codigoUsuario}
+        trocadoEm={
+          conta.codigoUsuarioTrocadoEm
+            ? formatarEm(conta.codigoUsuarioTrocadoEm, FUSO_ACRE, "dd/MM/yyyy 'às' HH'h'mm")
+            : null
+        }
+      />
 
       <AvisoInstalacaoIOS />
 

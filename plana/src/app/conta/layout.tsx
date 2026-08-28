@@ -39,7 +39,7 @@ export default async function LayoutConta({ children }: LayoutProps<"/conta">) {
             <Link
               key={aba.href}
               href={aba.href}
-              className="rounded-lg px-3 py-2 text-sm text-texto-2 hover:bg-superficie hover:text-violeta"
+              className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-texto-2 hover:bg-superficie hover:text-violeta"
             >
               {aba.rotulo}
               {aba.href === "/conta/notificacoes" && naoLidas > 0 ? (
