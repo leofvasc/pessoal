@@ -13,6 +13,7 @@ import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { prisma } from "../src/lib/prisma";
 import { hashDeSenha } from "../src/lib/sessao";
+import { codigoUsuario } from "../src/lib/codigos";
 
 async function principal() {
   const [email, nome] = process.argv.slice(2);
@@ -38,6 +39,7 @@ async function principal() {
       senhaHash: await hashDeSenha(senha),
       papel: "ORGANIZADOR",
       perfil: "PROFESSOR",
+      codigoUsuario: codigoUsuario(),
     },
     update: { papel: "ORGANIZADOR", senhaHash: await hashDeSenha(senha) },
     select: { id: true, email: true },

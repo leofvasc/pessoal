@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { exigirSessao, exigirOrganizador } from "@/lib/sessao";
-import { codigoCurto, codigoEvento, paraSlug, tokenQr } from "@/lib/codigos";
+import { codigoCurto, codigoEvento, paraSlug, tokenQr, tokenRemoto } from "@/lib/codigos";
 import { doAcreParaUtc } from "@/lib/fuso";
 import { notificar } from "@/lib/notificacoes";
 
@@ -145,6 +145,9 @@ export async function criarEvento(
       slug: await slugLivre(paraSlug(entrada.nome)),
       codigoCurto: codigoCurto(),
       tokenQr: tokenQr(),
+      // Só evento online ou híbrido tem página de presença a distância: no
+      // presencial, a presença é a leitura do QR projetado na sala.
+      tokenRemoto: entrada.modalidade === "PRESENCIAL" ? null : tokenRemoto(),
       codigoEvento: codigoEvento(ano, await proximoSequencial(ano)),
       organizadorId: sessao.usuarioId,
       palestrantes: {
@@ -208,4 +211,28 @@ export async function publicarEvento(eventoId: string) {
     data: { publicado: true },
   });
   revalidatePath(`/painel/eventos/${eventoId}`);
+}
+
+/**
+ * Devolve o token da página de presença à distância do evento, criando-o se
+ * ainda não houver.
+ *
+ * Existe para os eventos online e híbridos criados antes desta funcionalidade:
+ * a migração deixou a coluna nula de propósito, porque gerar segredo em SQL
+ * exigiria a extensão pgcrypto ou um `random()` que não serve para isso.
+ */
+export async function garantirTokenRemoto(eventoId: string): Promise<string> {
+  const evento = await prisma.evento.findUniqueOrThrow({
+    where: { id: eventoId },
+    select: { tokenRemoto: true, modalidade: true },
+  });
+
+  if (evento.modalidade === "PRESENCIAL") {
+    throw new Error("Evento presencial não tem página de presença a distância.");
+  }
+  if (evento.tokenRemoto) return evento.tokenRemoto;
+
+  const novo = tokenRemoto();
+  await prisma.evento.update({ where: { id: eventoId }, data: { tokenRemoto: novo } });
+  return novo;
 }

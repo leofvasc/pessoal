@@ -38,6 +38,12 @@ model Usuario {
   senhaHash String
   papel     Papel  @default(PARTICIPANTE)
 
+  /// Código pessoal do participante, no formato USR-XXXX-XXXX.
+  /// É o que ele digita para registrar presença à distância em evento online
+  /// ou híbrido, quando não há QR Code projetado para ler. Fica visível na
+  /// área da conta como "Seu código de usuário".
+  codigoUsuario String @unique
+
   perfil Perfil
 
   /// Complemento livre do perfil. Guarda a atividade ou instituição do
@@ -61,6 +67,7 @@ model Usuario {
   assinaturasPush    AssinaturaPush[]
   chamados           Chamado[]
   presencasLancadas  Presenca[]       @relation("PresencaLancadaPor")
+  arquivosEnviados   Arquivo[]        @relation("ArquivosEnviados")
 
   @@index([papel])
 }
@@ -105,13 +112,19 @@ enum Modalidade {
 /// muitos para muitos com os eventos — o que permite exibi-las no certificado
 /// e usá-las como filtro em relatórios.
 model Instituicao {
-  id      String  @id @default(cuid())
-  nome    String
-  logoUrl String?
+  id   String @id @default(cuid())
+  nome String
+
+  /// Logotipo enviado pelo gestor. Aparece na página do evento e no
+  /// certificado, ao lado do nome da instituição.
+  logoArquivoId String?
+  logoArquivo   Arquivo? @relation("LogoDaInstituicao", fields: [logoArquivoId], references: [id])
 
   criadoEm DateTime @default(now())
 
   eventos EventoInstituicao[]
+
+  @@index([logoArquivoId])
 }
 
 model EventoInstituicao {
@@ -149,10 +162,15 @@ model Evento {
   latitude  Float?
   longitude Float?
 
-  bannerUrl String?
+  /// Banner de divulgação do evento.
+  bannerArquivoId String?
+  bannerArquivo   Arquivo? @relation("BannerDoEvento", fields: [bannerArquivoId], references: [id])
 
-  /// Imagem-base A4 sobre a qual o certificado é gerado, apenas frente.
-  certificadoBaseUrl String?
+  /// Imagem-base A4 paisagem sobre a qual o certificado é gerado, apenas
+  /// frente. Enviada pelo gestor no cadastro do evento; pertence às
+  /// organizadoras, e a PlanA não a redesenha.
+  certificadoBaseArquivoId String?
+  certificadoBaseArquivo   Arquivo? @relation("ImagemBaseDoCertificado", fields: [certificadoBaseArquivoId], references: [id])
 
   /// Seção 3: link opcional de tutor virtual. Quando nulo, o campo é omitido
   /// da visualização dos participantes.
@@ -168,6 +186,12 @@ model Evento {
   /// público justamente para que a presença não possa ser registrada por quem
   /// apenas conhece o endereço do evento.
   tokenQr String @unique
+
+  /// Segredo da página de registro de presença à distância, presente apenas
+  /// em evento online ou híbrido. É separado do `tokenQr` de propósito: o link
+  /// remoto circula por e-mail entre os participantes a distância, e não pode
+  /// dar acesso ao QR projetado na sala nem ser revogado junto com ele.
+  tokenRemoto String? @unique
 
   /// Código legível do evento, no padrão EVT-AAAA-NNNN.
   codigoEvento String @unique
@@ -186,6 +210,8 @@ model Evento {
 
   @@index([organizadorId])
   @@index([inicioEm])
+  @@index([certificadoBaseArquivoId])
+  @@index([bannerArquivoId])
 }
 
 /// Seção 3: pode haver mais de um por evento. O campo vem preenchido por
@@ -204,16 +230,43 @@ model Palestrante {
 
 /// Seção 3: material de apoio disponibilizado para download dos inscritos.
 model MaterialApoio {
-  id           String   @id @default(cuid())
-  nome         String
-  arquivoUrl   String
-  tamanhoBytes Int
-  criadoEm     DateTime @default(now())
+  id       String   @id @default(cuid())
+  nome     String
+  ordem    Int      @default(0)
+  criadoEm DateTime @default(now())
+
+  arquivoId String
+  arquivo   Arquivo @relation("MaterialDeApoio", fields: [arquivoId], references: [id])
 
   eventoId String
   evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
   @@index([eventoId])
+  @@index([arquivoId])
+}
+
+/// Arquivo enviado pelo gestor e gravado no disco da VPS, fora da imagem da
+/// aplicação. A linha guarda o que é preciso para servir o arquivo com
+/// segurança: o tipo real (apurado pelos bytes, não pela extensão), o tamanho
+/// e o caminho relativo gerado pela plataforma — o nome original do envio
+/// nunca vira nome de arquivo em disco.
+model Arquivo {
+  id           String   @id @default(cuid())
+  nomeOriginal String
+  tipoMime     String
+  tamanhoBytes Int
+  caminho      String   @unique
+  criadoEm     DateTime @default(now())
+
+  enviadoPorId String
+  enviadoPor   Usuario @relation("ArquivosEnviados", fields: [enviadoPorId], references: [id])
+
+  logosDeInstituicoes Instituicao[]   @relation("LogoDaInstituicao")
+  imagensBase         Evento[]        @relation("ImagemBaseDoCertificado")
+  banners             Evento[]        @relation("BannerDoEvento")
+  materiais           MaterialApoio[] @relation("MaterialDeApoio")
+
+  @@index([enviadoPorId])
 }
 
 // ---------------------------------------------------------------------------
@@ -241,6 +294,10 @@ model Inscricao {
 enum MetodoPresenca {
   /// Seção 7: leitura do QR Code cruzada com o login e a geolocalização.
   QR_GEOLOCALIZACAO
+  /// Registro à distância em evento online ou híbrido: o participante abre a
+  /// página própria do evento e digita o código pessoal da sua conta. Não há
+  /// QR projetado para ler nem local físico contra o qual conferir posição.
+  CODIGO_REMOTO
   /// Alternativa subsidiária, lançada pela organização. Sempre disponível
   /// porque a precisão do GPS varia em ambiente fechado (seção 8.1).
   MANUAL

@@ -10,5 +10,9 @@ export default defineConfig({
   },
   datasource: {
     url: process.env["DATABASE_URL"],
+    // Banco descartável que o Prisma usa para conferir o efeito das migrações
+    // antes de aplicá-las. Só é preciso em desenvolvimento, ao gerar migração
+    // nova — `migrate deploy`, que é o que roda na VPS, não o usa.
+    shadowDatabaseUrl: process.env["SHADOW_DATABASE_URL"],
   },
 });

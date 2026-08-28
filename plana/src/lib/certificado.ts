@@ -86,7 +86,16 @@ export type DadosCertificado = {
   caminhoImagemBase?: string | null;
   /** Origem pública da plataforma, p. ex. https://planaeventos.app */
   origem: string;
+  /** Como a presença foi confirmada — vai escrito no bloco de validação. */
+  metodoPresenca: "QR_GEOLOCALIZACAO" | "CODIGO_REMOTO" | "MANUAL";
 };
+
+/** Frase do bloco de validação, conforme o caminho pelo qual a presença veio. */
+const COMO_A_PRESENCA_FOI_REGISTRADA = {
+  QR_GEOLOCALIZACAO: "presença registrada por leitura de QR Code com geolocalização.",
+  CODIGO_REMOTO: "presença a distância registrada por código pessoal do participante.",
+  MANUAL: "presença registrada pela organização do evento.",
+} as const;
 
 /** Quebra um texto no número de linhas que couber na largura dada. */
 function quebrar(texto: string, fonte: PDFFont, tamanho: number, largura: number): string[] {
@@ -262,7 +271,7 @@ async function desenharBlocoValidacao(
 
   const nota =
     `Autenticidade verificável em ${dados.origem.replace(/^https?:\/\//, "")}/validar · ` +
-    "presença registrada por leitura de QR Code com geolocalização.";
+    COMO_A_PRESENCA_FOI_REGISTRADA[dados.metodoPresenca];
   for (const [i, linha] of quebrar(nota, fontes.regular, 8, LARGURA - margem * 2 - 200).entries()) {
     pagina.drawText(linha, {
       x: margem,

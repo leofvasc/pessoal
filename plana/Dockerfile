@@ -50,6 +50,12 @@ COPY --from=construcao --chown=plana:nodejs /app/.next/static ./.next/static
 # importadas como módulo.
 COPY --from=construcao --chown=plana:nodejs /app/src/assets/fontes ./src/assets/fontes
 
+# O volume é montado aqui em produção; o diretório existe de antemão e já
+# pertence ao usuário da aplicação, para o primeiro envio não esbarrar em
+# permissão.
+RUN mkdir -p /app/arquivos && chown plana:nodejs /app/arquivos
+ENV DIRETORIO_ARQUIVOS=/app/arquivos
+
 USER plana
 EXPOSE 3000
 

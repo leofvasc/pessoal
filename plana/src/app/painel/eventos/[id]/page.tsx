@@ -4,11 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { exigirOrganizador } from "@/lib/sessao";
 import { Aviso, Cartao, Dado, Etiqueta, Titulo } from "@/components/ui";
 import { dataLongaAcre, etiquetaDoisFusos, formatarCargaHoraria } from "@/lib/fuso";
-import { qrSvg, urlCurta, urlDePresenca, urlLonga } from "@/lib/qr";
+import { qrSvg, urlCurta, urlDePresenca, urlLonga, urlPresencaRemota } from "@/lib/qr";
 import { origemPublica } from "@/lib/origem";
 import { TOLERANCIA_METROS } from "@/lib/geo";
 import { ListaPresenca } from "./lista-presenca";
 import { BotaoPublicar } from "./acoes-cliente";
+import { LinkPresencaRemota } from "./link-remoto";
+import { garantirTokenRemoto } from "@/app/acoes-evento";
+import { ImagemBaseDoCertificado, MaterialDeApoio, Organizadoras } from "./materiais";
+import { formatarTamanho } from "@/lib/armazenamento";
 
 export const metadata = { title: "Evento" };
 
@@ -18,25 +22,39 @@ export default async function PaginaEvento({ params }: PageProps<"/painel/evento
   const { id } = await params;
   const sessao = await exigirOrganizador();
 
-  const evento = await prisma.evento.findFirst({
-    where: { id, organizadorId: sessao.usuarioId },
-    include: {
-      palestrantes: { orderBy: { ordem: "asc" } },
-      inscricoes: {
-        where: { canceladaEm: null },
-        orderBy: { criadaEm: "asc" },
-        include: {
-          usuario: { select: { nome: true, email: true, perfil: true } },
-          presenca: { select: { registradaEm: true, metodo: true } },
-          certificado: { select: { codigoValidacao: true, primeiraEmissaoEm: true } },
+  const [evento, instituicoesDisponiveis] = await Promise.all([
+    prisma.evento.findFirst({
+      where: { id, organizadorId: sessao.usuarioId },
+      include: {
+        palestrantes: { orderBy: { ordem: "asc" } },
+        instituicoes: { orderBy: { ordem: "asc" }, select: { instituicaoId: true } },
+        materiais: {
+          orderBy: { ordem: "asc" },
+          include: { arquivo: { select: { id: true, tamanhoBytes: true } } },
+        },
+        inscricoes: {
+          where: { canceladaEm: null },
+          orderBy: { criadaEm: "asc" },
+          include: {
+            usuario: { select: { nome: true, email: true, perfil: true } },
+            presenca: { select: { registradaEm: true, metodo: true } },
+            certificado: { select: { codigoValidacao: true, primeiraEmissaoEm: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.instituicao.findMany({ orderBy: { nome: "asc" }, select: { id: true, nome: true } }),
+  ]);
 
   if (!evento) notFound();
 
   const origem = await origemPublica();
+
+  // Evento online ou híbrido criado antes desta funcionalidade não tem token
+  // remoto. Ele é gerado aqui, na primeira vez que o gestor abre o evento —
+  // com o gerador criptográfico da aplicação, não com um `random()` do banco.
+  const tokenRemoto =
+    evento.modalidade === "PRESENCIAL" ? null : await garantirTokenRemoto(evento.id);
 
   // Dois QRs com finalidades que não se misturam: o de presença carrega o token
   // secreto e é projetado na sala; o de divulgação aponta para o link curto.
@@ -114,6 +132,15 @@ export default async function PaginaEvento({ params }: PageProps<"/painel/evento
         </Cartao>
       </section>
 
+      {/* Seções 2 e 7: quem assiste a distância não tem QR projetado para ler.
+          Cada evento online ou híbrido ganha esta página própria, cujo endereço
+          a organização envia aos participantes remotos. */}
+      {tokenRemoto ? (
+        <section className="mt-4">
+          <LinkPresencaRemota url={urlPresencaRemota(origem, tokenRemoto)} />
+        </section>
+      ) : null}
+
       {evento.modalidade !== "ONLINE" && evento.latitude === null ? (
         <div className="mt-6">
           <Aviso tom="erro" titulo="Sem ponto no mapa">
@@ -122,6 +149,32 @@ export default async function PaginaEvento({ params }: PageProps<"/painel/evento
           </Aviso>
         </div>
       ) : null}
+
+      {/* Seção 3: o que o gestor preenche depois de criar o evento —
+          imagem-base do certificado, material de apoio e organizadoras. */}
+      <section className="mt-10">
+        <Titulo nivel={2}>Materiais do evento</Titulo>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <ImagemBaseDoCertificado
+            eventoId={evento.id}
+            arquivoId={evento.certificadoBaseArquivoId}
+          />
+          <MaterialDeApoio
+            eventoId={evento.id}
+            materiais={evento.materiais.map((material) => ({
+              id: material.id,
+              nome: material.nome,
+              arquivoId: material.arquivo.id,
+              tamanho: formatarTamanho(material.arquivo.tamanhoBytes),
+            }))}
+          />
+          <Organizadoras
+            eventoId={evento.id}
+            disponiveis={instituicoesDisponiveis}
+            selecionadasIniciais={evento.instituicoes.map((i) => i.instituicaoId)}
+          />
+        </div>
+      </section>
 
       <section className="mt-10">
         <div className="flex flex-wrap items-end justify-between gap-3">

@@ -11,6 +11,7 @@ import { sessaoAtual } from "@/lib/sessao";
 import { gerarCertificado } from "@/lib/certificado";
 import { origemPublica } from "@/lib/origem";
 import { descartarGeolocalizacaoDoCheckin } from "@/lib/retencao";
+import { caminhoAbsoluto } from "@/lib/armazenamento";
 
 export async function GET(
   _requisicao: Request,
@@ -30,14 +31,14 @@ export async function GET(
       inscricao: {
         select: {
           usuario: { select: { nome: true } },
-          presenca: { select: { id: true } },
+          presenca: { select: { id: true, metodo: true } },
           evento: {
             select: {
               nome: true,
               inicioEm: true,
               fimEm: true,
               cargaHorariaMinutos: true,
-              certificadoBaseUrl: true,
+              certificadoBaseArquivo: { select: { caminho: true } },
               instituicoes: {
                 orderBy: { ordem: "asc" },
                 select: { instituicao: { select: { nome: true } } },
@@ -67,8 +68,11 @@ export async function GET(
     cargaHorariaMinutos: evento.cargaHorariaMinutos,
     instituicoes: evento.instituicoes.map((i) => i.instituicao.nome),
     codigoValidacao: certificado.codigoValidacao,
-    caminhoImagemBase: evento.certificadoBaseUrl,
+    caminhoImagemBase: evento.certificadoBaseArquivo
+      ? caminhoAbsoluto(evento.certificadoBaseArquivo.caminho)
+      : null,
     origem: await origemPublica(),
+    metodoPresenca: presenca.metodo,
   });
 
   await prisma.certificado.update({

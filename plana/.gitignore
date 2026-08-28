@@ -52,3 +52,6 @@ next-env.d.ts
 
 # skills instaladas automaticamente pelo `prisma init`
 /.claude
+
+# envios do gestor em desenvolvimento
+/arquivos

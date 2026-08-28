@@ -33,6 +33,11 @@ export function urlDePresenca(base: string, tokenQr: string): string {
   return `${base.replace(/\/$/, "")}/presenca/${tokenQr}`;
 }
 
+/** Página de registro de presença à distância, para evento online ou híbrido. */
+export function urlPresencaRemota(base: string, tokenRemoto: string): string {
+  return `${base.replace(/\/$/, "")}/presenca-remota/${tokenRemoto}`;
+}
+
 export function urlCurta(base: string, codigoCurto: string): string {
   return `${base.replace(/\/$/, "")}/e/${codigoCurto}`;
 }

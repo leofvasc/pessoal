@@ -52,9 +52,12 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
       VAPID_SUBJECT: ${VAPID_SUBJECT}
+      # Onde os envios do gestor são gravados, dentro do volume abaixo.
+      DIRETORIO_ARQUIVOS: /app/arquivos
     volumes:
-      # Imagens-base de certificado e material de apoio enviados pelo
-      # organizador. Fora da imagem, para sobreviverem ao próximo deploy.
+      # Imagens-base de certificado, logotipos, banners e material de apoio
+      # enviados pelo gestor. Fora da imagem, para sobreviverem ao deploy
+      # seguinte — é o único conteúdo, além do banco, que não se reconstrói.
       - arquivos:/app/arquivos
 
   proxy:

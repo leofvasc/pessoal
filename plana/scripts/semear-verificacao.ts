@@ -1,13 +1,14 @@
 import { prisma } from "../src/lib/prisma";
 import { hashDeSenha } from "../src/lib/sessao";
-import { codigoCurto, codigoEvento, paraSlug, tokenQr } from "../src/lib/codigos";
+import { codigoUsuario } from "../src/lib/codigos";
+import { codigoCurto, codigoEvento, paraSlug, tokenQr, tokenRemoto } from "../src/lib/codigos";
 
 async function main() {
   const senha = await hashDeSenha("senha-de-teste-123");
 
   const org = await prisma.usuario.upsert({
     where: { email: "org@teste.local" },
-    create: { email: "org@teste.local", nome: "Leonardo Vasconcelos", senhaHash: senha, papel: "ORGANIZADOR", perfil: "PROFESSOR" },
+    create: { email: "org@teste.local", nome: "Leonardo Vasconcelos", senhaHash: senha, papel: "ORGANIZADOR", perfil: "PROFESSOR", codigoUsuario: codigoUsuario() },
     update: {},
   });
 
@@ -16,6 +17,7 @@ async function main() {
     create: {
       email: "maria@teste.local", nome: "Maria Nogueira de Albuquerque", senhaHash: senha,
       perfil: "PROFISSIONAL_JURIDICO", perfilDetalhe: "Defensoria Pública do Acre",
+      codigoUsuario: codigoUsuario(),
     },
     update: {},
   });
@@ -53,7 +55,38 @@ async function main() {
     update: { revogadoEm: null },
   });
 
+  // Segundo evento, híbrido, para exercitar o registro de presença à distância.
+  const nomeHibrido = "Capacitação em Proteção de Dados";
+  await prisma.evento.deleteMany({ where: { codigoEvento: codigoEvento(2026, 185) } });
+  const hibrido = await prisma.evento.create({
+    data: {
+      nome: nomeHibrido,
+      descricao: "Capacitação transmitida ao vivo, com público presencial e a distância.",
+      modalidade: "HIBRIDO",
+      inicioEm,
+      fimEm,
+      localNome: "Auditório do MPAC",
+      localEndereco: "Rio Branco/AC",
+      meioTransmissao: "Transmissão pelo YouTube",
+      latitude: -9.97499,
+      longitude: -67.8243,
+      cargaHorariaMinutos: 180,
+      slug: paraSlug(nomeHibrido),
+      codigoCurto: codigoCurto(),
+      tokenQr: tokenQr(),
+      tokenRemoto: tokenRemoto(),
+      codigoEvento: codigoEvento(2026, 185),
+      organizadorId: org.id,
+      publicado: true,
+      palestrantes: { create: { nome: "Leonardo Vasconcelos", qualificacao: "Encarregado de dados" } },
+      instituicoes: { create: { instituicaoId: inst.id } },
+    },
+  });
+  await prisma.inscricao.create({ data: { eventoId: hibrido.id, usuarioId: part.id } });
+
   console.log("SLUG=" + evento.slug);
+  console.log("TOKEN_REMOTO=" + hibrido.tokenRemoto);
+  console.log("CODIGO_MARIA=" + (await prisma.usuario.findUniqueOrThrow({ where: { id: part.id }, select: { codigoUsuario: true } })).codigoUsuario);
   console.log("TOKEN=" + evento.tokenQr);
   console.log("CURTO=" + evento.codigoCurto);
   console.log("EVENTO_ID=" + evento.id);

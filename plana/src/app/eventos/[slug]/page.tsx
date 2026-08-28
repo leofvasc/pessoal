@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { sessaoAtual } from "@/lib/sessao";
 import { Aviso, BotaoLink, Cartao, Etiqueta, Titulo } from "@/components/ui";
 import { Logotipo } from "@/components/marca/Logotipo";
 import { dataLongaAcre, etiquetaDoisFusos, formatarCargaHoraria } from "@/lib/fuso";
+import { formatarTamanho } from "@/lib/armazenamento";
 import { BotaoInscricao } from "./botao-inscricao";
 
 const MODALIDADES = { PRESENCIAL: "Presencial", ONLINE: "Online", HIBRIDO: "Híbrido" } as const;
@@ -16,7 +18,10 @@ async function buscar(slug: string) {
     include: {
       palestrantes: { orderBy: { ordem: "asc" } },
       instituicoes: { include: { instituicao: true }, orderBy: { ordem: "asc" } },
-      materiais: true,
+      materiais: {
+        orderBy: { ordem: "asc" },
+        include: { arquivo: { select: { id: true, tamanhoBytes: true } } },
+      },
     },
   });
 }
@@ -81,12 +86,26 @@ export default async function PaginaPublicaEvento({ params }: PageProps<"/evento
         {/* Seção 10 do manual: em peça de evento quem lidera visualmente é a
             instituição organizadora; a PlanA assina como plataforma no rodapé. */}
         {evento.instituicoes.length > 0 ? (
-          <p className="mt-6 text-sm text-texto-2">
-            Promovido por{" "}
-            <span className="font-semibold text-tinta">
-              {evento.instituicoes.map((i) => i.instituicao.nome).join(", ")}
-            </span>
-          </p>
+          <div className="mt-6">
+            <Etiqueta>promovido por</Etiqueta>
+            <ul className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-3">
+              {evento.instituicoes.map(({ instituicao }) => (
+                <li key={instituicao.id} className="flex items-center gap-3">
+                  {instituicao.logoArquivoId ? (
+                    <Image
+                      src={`/arquivos/${instituicao.logoArquivoId}`}
+                      alt=""
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className="size-10 object-contain"
+                    />
+                  ) : null}
+                  <span className="text-sm font-semibold text-tinta">{instituicao.nome}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
 
         <div className="mt-8 whitespace-pre-line text-sm text-tinta">{evento.descricao}</div>
@@ -117,7 +136,7 @@ export default async function PaginaPublicaEvento({ params }: PageProps<"/evento
             </Cartao>
           ))}
 
-          {/* Seção 3: quando não preenchido, o campo é omitido da visualização. */}
+            {/* Seção 3: quando não preenchido, o campo é omitido da visualização. */}
           {evento.tutorVirtualUrl ? (
             <Cartao>
               <Etiqueta>tutor virtual</Etiqueta>
@@ -132,6 +151,30 @@ export default async function PaginaPublicaEvento({ params }: PageProps<"/evento
             </Cartao>
           ) : null}
         </section>
+
+        {/* Seção 3: material de apoio disponibilizado para download dos
+            inscritos — e só deles. A rota do arquivo confere a inscrição; aqui
+            a lista nem aparece para quem não está inscrito. */}
+        {inscrito && evento.materiais.length > 0 ? (
+          <section className="mt-10">
+            <Titulo nivel={2}>Material de apoio</Titulo>
+            <ul className="mt-4 divide-y divide-linha overflow-hidden rounded-2xl border border-linha bg-white">
+              {evento.materiais.map((material) => (
+                <li key={material.id} className="px-5 py-4">
+                  <a
+                    href={`/arquivos/${material.arquivo.id}`}
+                    className="text-sm font-semibold text-violeta hover:text-profundo"
+                  >
+                    {material.nome}
+                  </a>
+                  <p>
+                    <Etiqueta>{formatarTamanho(material.arquivo.tamanhoBytes)}</Etiqueta>
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <div className="mt-10">
           {encerrado ? (

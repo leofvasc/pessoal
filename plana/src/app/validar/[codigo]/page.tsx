@@ -6,6 +6,15 @@ import { dataLongaAcre, formatarCargaHoraria } from "@/lib/fuso";
 
 export const metadata = { title: "Validação de certificado" };
 
+/** Como cada presença foi confirmada. Quem confere o certificado tem direito a
+ *  saber por qual caminho, já que eles têm rigores diferentes. */
+const DESCRICAO_DO_METODO = {
+  QR_GEOLOCALIZACAO: "por leitura de QR Code no local, com conferência de geolocalização.",
+  CODIGO_REMOTO:
+    "a distância, em evento online ou híbrido, pelo código pessoal do participante.",
+  MANUAL: "por lançamento da organização do evento.",
+} as const;
+
 /**
  * Consulta pública de autenticidade — o destino do QR do bloco de validação.
  *
@@ -69,10 +78,8 @@ export default async function PaginaValidacao({ params }: PageProps<"/validar/[c
           <>
             <div className="mt-8">
               <Aviso tom="sucesso" titulo="Certificado autêntico">
-                Emitido pela PlanA com presença registrada
-                {certificado.inscricao.presenca.metodo === "QR_GEOLOCALIZACAO"
-                  ? " por leitura de QR Code com geolocalização."
-                  : " por lançamento da organização do evento."}
+                Emitido pela PlanA com presença registrada{" "}
+                {DESCRICAO_DO_METODO[certificado.inscricao.presenca.metodo]}
               </Aviso>
             </div>
 

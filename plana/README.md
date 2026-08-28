@@ -17,7 +17,9 @@ do código citam a seção do documento que justifica cada decisão.
 | Conta e consentimento | Cadastro com perfis, sessão própria, consentimento por finalidade com o texto lido gravado |
 | Evento | Criação com pino manual no mapa, fuso do Acre com espelho de Brasília, QR de presença e de divulgação |
 | Presença | Leitura do QR cruzada com login e geolocalização (70 m), lançamento manual pela organização |
-| Certificado | Gerado sob demanda em PDF A4 paisagem, com bloco de validação e consulta pública |
+| Certificado | Gerado sob demanda em PDF A4 paisagem sobre a imagem-base do evento, com bloco de validação e consulta pública |
+| Presença a distância | Página própria por evento online ou híbrido, com código pessoal do participante e limite de tentativas |
+| Painel do gestor | Cadastro de instituições com logotipo, imagem-base do certificado e material de apoio para os inscritos |
 | Notificações | Central interna mais push do navegador, com o caminho de instalação do iOS tratado |
 | PWA | Manifesto, service worker, ícones e ícone *maskable* gerados da especificação da marca |
 | Implantação | Docker Compose com Postgres e Caddy (TLS automático) para a VPS |
@@ -78,7 +80,7 @@ npm run organizador -- voce@dominio "Seu Nome"
 | `npm run chaves:vapid` | Gera o par de chaves das notificações push |
 | `npm run organizador` | Cria ou promove a conta de organizador |
 | `npm run retencao` | Varredura de retenção mínima (para o cron diário) |
-| `npm run semear:verificacao` | Popula o banco local com um evento e dois usuários de teste |
+| `npm run semear:verificacao` | Popula o banco local com dois eventos (um presencial, um híbrido) e dois usuários de teste |
 
 ## Implantação na VPS Hostinger
 
@@ -161,6 +163,21 @@ prática, no código:
   consegue descrever uma regra diferente da executada.
 - **Nada guardado à toa.** O PDF do certificado não é armazenado: é montado a
   cada download.
+- **Arquivo não é público por descuido.** Os envios do gestor ficam fora de
+  `public/` e passam por `/arquivos/[id]`, que decide por uso: logotipo e banner
+  são públicos; material de apoio é só de quem está inscrito no evento; a
+  imagem-base do certificado é só do organizador.
+
+## Arquivos enviados pelo gestor
+
+Imagem-base de certificado, logotipos, banners e material de apoio ficam no
+volume `arquivos`, fora da imagem da aplicação — junto com o banco, é o único
+conteúdo que não se reconstrói, e o único que precisa de backup.
+
+O tipo de cada arquivo é apurado pelos bytes iniciais, não pela extensão nem
+pelo `Content-Type` do navegador: os dois são escolhidos por quem envia. O nome
+em disco é gerado pela plataforma, então o nome original nunca vira caminho.
+Limites e formatos aceitos por categoria estão em `src/lib/armazenamento.ts`.
 
 ## Identidade visual
 

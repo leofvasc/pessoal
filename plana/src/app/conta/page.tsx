@@ -4,6 +4,7 @@ import { exigirSessao } from "@/lib/sessao";
 import { Cartao, Etiqueta, Titulo } from "@/components/ui";
 import { dataLongaAcre, etiquetaDoisFusos } from "@/lib/fuso";
 import { AvisoInstalacaoIOS } from "@/components/AvisoInstalacaoIOS";
+import { CodigoDeUsuario } from "@/components/CodigoDeUsuario";
 
 export const metadata = { title: "Minha conta" };
 
@@ -34,11 +35,19 @@ async function carregarInscricoes(usuarioId: string) {
 
 export default async function PaginaConta() {
   const sessao = await exigirSessao();
-  const { proximos, passados } = await carregarInscricoes(sessao.usuarioId);
+  const [conta, { proximos, passados }] = await Promise.all([
+    prisma.usuario.findUniqueOrThrow({
+      where: { id: sessao.usuarioId },
+      select: { codigoUsuario: true },
+    }),
+    carregarInscricoes(sessao.usuarioId),
+  ]);
 
   return (
     <>
       <Titulo>Olá, {sessao.nome.split(" ")[0]}</Titulo>
+
+      <CodigoDeUsuario codigo={conta.codigoUsuario} />
 
       <AvisoInstalacaoIOS />
 

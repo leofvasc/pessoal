@@ -17,9 +17,17 @@ export default async function LayoutPainel({ children }: LayoutProps<"/painel">)
             <Logotipo altura={22} />
             <span className="etiqueta text-texto-2">painel</span>
           </Link>
-          <form action={sair}>
-            <button className="text-sm text-texto-2 hover:text-violeta">Sair</button>
-          </form>
+          <nav className="flex items-center gap-5">
+            <Link
+              href="/painel/instituicoes"
+              className="text-sm text-texto-2 hover:text-violeta"
+            >
+              Instituições
+            </Link>
+            <form action={sair}>
+              <button className="text-sm text-texto-2 hover:text-violeta">Sair</button>
+            </form>
+          </nav>
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">{children}</main>

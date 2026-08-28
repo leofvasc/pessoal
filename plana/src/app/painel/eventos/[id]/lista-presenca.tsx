@@ -9,11 +9,15 @@ type Inscricao = {
   nome: string;
   email: string;
   presencaEm: string | null;
-  metodo: "QR_GEOLOCALIZACAO" | "MANUAL" | null;
+  metodo: "QR_GEOLOCALIZACAO" | "CODIGO_REMOTO" | "MANUAL" | null;
   codigoValidacao: string | null;
 };
 
-const METODOS = { QR_GEOLOCALIZACAO: "QR Code", MANUAL: "manual" } as const;
+const METODOS = {
+  QR_GEOLOCALIZACAO: "QR Code",
+  CODIGO_REMOTO: "a distância",
+  MANUAL: "manual",
+} as const;
 
 export function ListaPresenca({ inscricoes }: { inscricoes: Inscricao[] }) {
   const [pendente, iniciar] = useTransition();

@@ -11,9 +11,10 @@ import "server-only";
  */
 import { prisma } from "./prisma";
 import { validarPresenca, explicarFalha, type Ponto } from "./geo";
-import { codigoValidacao } from "./codigos";
+import { codigoValidacao, normalizarCodigoUsuario } from "./codigos";
 import { notificar } from "./notificacoes";
 import { temConsentimento } from "./consentimento";
+import { registrarTentativa, liberar } from "./limite-tentativas";
 
 export type ResultadoCheckin =
   | { ok: true; jaRegistrada: boolean; certificadoLiberado: boolean; distancia: number | null }
@@ -197,6 +198,126 @@ export async function lancarPresencaManual(params: {
     tipo: "PRESENCA_REGISTRADA",
     titulo: "Presença confirmada",
     corpo: `A organização registrou sua presença em ${inscricao.evento.nome}.`,
+    link: "/conta/certificados",
+  });
+
+  return { ok: true, jaRegistrada: false, certificadoLiberado: true, distancia: null };
+}
+
+/**
+ * Registro de presença à distância, para evento online ou híbrido.
+ *
+ * Quem assiste a distância não tem QR projetado para ler nem local físico
+ * contra o qual conferir posição. O caminho aqui é outro: cada evento online ou
+ * híbrido ganha uma página própria, de endereço secreto, que a organização
+ * envia aos participantes remotos; nela a pessoa digita o código pessoal da sua
+ * conta.
+ *
+ * A segurança não vem do código sozinho, que é curto para poder ser digitado.
+ * Vem da soma de quatro coisas:
+ *   1. o endereço da página é secreto e vale só para aquele evento;
+ *   2. só registra presença de quem já está inscrito no evento;
+ *   3. a janela de registro é a do evento, não vale antes nem muito depois;
+ *   4. há limite de tentativas por origem, o que inviabiliza varrer códigos.
+ */
+export async function registrarPresencaRemota(params: {
+  tokenRemoto: string;
+  codigoDigitado: string;
+  /** Identificador da origem da requisição, para o limite de tentativas. */
+  origem: string;
+}): Promise<ResultadoCheckin> {
+  const chaveDeLimite = `remoto:${params.tokenRemoto}:${params.origem}`;
+  const limite = registrarTentativa(chaveDeLimite, { maximo: 8, janelaSegundos: 600 });
+
+  if (!limite.permitido) {
+    const minutos = Math.ceil(limite.segundosParaLiberar / 60);
+    return recusar(
+      "limite_de_tentativas",
+      `Muitas tentativas seguidas. Tente de novo em ${minutos} minuto${minutos > 1 ? "s" : ""}, ou peça o lançamento manual à organização.`,
+    );
+  }
+
+  const evento = await prisma.evento.findUnique({
+    where: { tokenRemoto: params.tokenRemoto },
+    select: {
+      id: true,
+      nome: true,
+      inicioEm: true,
+      fimEm: true,
+      modalidade: true,
+      codigoEvento: true,
+    },
+  });
+
+  if (!evento) {
+    return recusar("pagina_desconhecida", "Esta página de presença não corresponde a nenhum evento.");
+  }
+  if (evento.modalidade === "PRESENCIAL") {
+    return recusar(
+      "evento_presencial",
+      "Este evento é presencial: a presença se registra lendo o QR Code projetado na sala.",
+    );
+  }
+
+  const agora = Date.now();
+  if (agora < evento.inicioEm.getTime() - FOLGA_MS) {
+    return recusar("cedo_demais", "O registro de presença ainda não está aberto para este evento.");
+  }
+  if (agora > evento.fimEm.getTime() + FOLGA_MS) {
+    return recusar(
+      "tarde_demais",
+      "O registro de presença deste evento já foi encerrado. Peça o lançamento manual à organização.",
+    );
+  }
+
+  const codigo = normalizarCodigoUsuario(params.codigoDigitado);
+  const usuario = await prisma.usuario.findUnique({
+    where: { codigoUsuario: codigo },
+    select: { id: true, excluidoEm: true },
+  });
+
+  // Mensagem única para código inexistente e para código de quem não está
+  // inscrito: distinguir os dois diria a quem tenta adivinhar que um código
+  // existe, o que é justamente o que o limite de tentativas tenta impedir.
+  const naoConfere = recusar(
+    "codigo_nao_confere",
+    "Código não encontrado entre os inscritos deste evento. Confira em “Seu código de usuário”, na sua conta.",
+  );
+
+  if (!usuario || usuario.excluidoEm) return naoConfere;
+
+  const inscricao = await prisma.inscricao.findUnique({
+    where: { eventoId_usuarioId: { eventoId: evento.id, usuarioId: usuario.id } },
+    select: { id: true, canceladaEm: true, presenca: { select: { id: true } } },
+  });
+
+  if (!inscricao || inscricao.canceladaEm) return naoConfere;
+
+  // Código certo: a contagem de tentativas some, para não punir quem vai
+  // registrar a presença de várias pessoas do mesmo escritório ou laboratório.
+  liberar(chaveDeLimite);
+
+  if (inscricao.presenca) {
+    return { ok: true, jaRegistrada: true, certificadoLiberado: true, distancia: null };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.presenca.create({
+      data: { inscricaoId: inscricao.id, metodo: "CODIGO_REMOTO" },
+    });
+    await tx.certificado.create({
+      data: {
+        inscricaoId: inscricao.id,
+        codigoValidacao: codigoValidacao(evento.codigoEvento),
+      },
+    });
+  });
+
+  await notificar({
+    usuarioId: usuario.id,
+    tipo: "PRESENCA_REGISTRADA",
+    titulo: "Presença confirmada",
+    corpo: `Sua presença a distância em ${evento.nome} foi registrada. O certificado fica disponível ao fim do evento.`,
     link: "/conta/certificados",
   });
 

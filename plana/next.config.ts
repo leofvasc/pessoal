@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
   // o que deixa a imagem Docker pequena o bastante para uma VPS de entrada.
   output: "standalone",
 
+  experimental: {
+    serverActions: {
+      // O padrão de 1 MB não comporta os envios do gestor: a imagem-base do
+      // certificado vai até 10 MB e o material de apoio, até 50 MB. Os limites
+      // por categoria, que são os que valem, estão em `src/lib/armazenamento.ts`.
+      bodySizeLimit: "55mb",
+    },
+  },
+
   async headers() {
     return [
       {

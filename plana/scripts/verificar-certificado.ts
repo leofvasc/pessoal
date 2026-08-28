@@ -20,6 +20,7 @@ async function principal() {
     instituicoes: ["Instituto Lovelace", "CEAF/MPAC"],
     codigoValidacao: "CERT-2026-0184-7F3ADX",
     origem: "https://planaeventos.app",
+    metodoPresenca: "QR_GEOLOCALIZACAO",
   });
 
   await mkdir("saida", { recursive: true });
