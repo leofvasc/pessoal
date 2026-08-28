@@ -36,6 +36,11 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://plana:${POSTGRES_PASSWORD}@banco:5432/plana?schema=public
+      DIRETORIO_ARQUIVOS: /app/arquivos
+    volumes:
+      # O mesmo volume da aplicação. É por aqui que se faz o backup dos envios
+      # do gestor sem precisar descobrir o nome interno do volume.
+      - arquivos:/app/arquivos
 
   app:
     build:

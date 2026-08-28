@@ -135,8 +135,16 @@ latência de acesso a partir do Acre.
    reconstruído:
 
    ```
-   30 3 * * *  docker compose -f /opt/plana/docker-compose.yml exec -T banco \
-                 pg_dump -U plana plana | gzip > /var/backups/plana-$(date +\%F).sql.gz
+   30 3 * * *  cd /opt/plana && docker compose exec -T banco sh -c \
+                 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U plana plana' \
+                 | gzip > /var/backups/plana-banco-$(date +\%F).sql.gz
+   ```
+
+   E os arquivos enviados pelo gestor, que também não se reconstroem:
+
+   ```
+   45 3 * * *  cd /opt/plana && docker compose run --rm -v /var/backups:/backup \
+                 migracoes tar -czf /backup/plana-arquivos-$(date +\%F).tar.gz -C /app/arquivos .
    ```
 
 ### Atualizar
