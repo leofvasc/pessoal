@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/*
+ * Tokens da identidade visual PlanA — Manual de identidade visual v1.0.
+ * Seção 06 (Cores) e 07 (Tipografia). Alterar aqui, nunca no componente.
+ */
+@theme {
+  /* Paleta — quatro cores fazem toda a identidade */
+  --color-violeta: #6b4cf6;
+  --color-profundo: #3d22b8;
+  --color-lilas: #eae5ff;
+  --color-tinta: #191632;
+
+  /* Apoio de interface */
+  --color-superficie: #f8f7fc;
+  --color-linha: #efedf6;
+  --color-texto-2: #6e6990;
+  --color-sucesso: #1f9d6e;
+  --color-erro: #d8532f;
+
+  /* Variações usadas no manual */
+  --color-violeta-claro: #8e72ff;  /* diagonais sobre fundo tinta */
+  --color-violeta-ficha-de: #7e5cff;
+  --color-violeta-ficha-ate: #5b36e8;
+  --color-lilas-escuro: #b0abc8;   /* marca no miolo do bloco */
+
+  --font-sans: var(--font-jakarta), "Helvetica Neue", Helvetica, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-superficie);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+}
+
+/*
+ * Seção 07: corpo de texto em 400 com entrelinha 1,6; alinhamento sempre à
+ * esquerda, sem justificar.
+ */
+p {
+  line-height: 1.6;
+}
+
+/* Seção 07: JetBrains Mono é a voz técnica — etiquetas em caixa alta com
+ * tracking de 0,16 a 0,22 em. */
+.etiqueta {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+/* Seção 06: gradiente permitido apenas na ficha violeta e em fundos de
+ * grande área — nunca nos módulos do símbolo. */
+.ficha-violeta {
+  background: linear-gradient(150deg, var(--color-violeta-ficha-de), var(--color-violeta-ficha-ate));
+}
+
+/*
+ * Seção 16: padrão de módulos para grandes áreas — repete a malha do símbolo
+ * em violeta profundo sobre violeta primário, com 8% de contraste. É textura
+ * de fundo: nunca compete com o lockup nem se aproxima dele a menos de 3u.
+ *
+ * O ladrilho reproduz a geometria do símbolo — módulo de 3u com raio de 1u e
+ * calha de 1u — em u = 5px. O contraste vem do alfa da camada, não de uma cor
+ * mais clara: assim o violeta de fundo continua sendo exatamente o da marca.
+ */
+.padrao-modulos {
+  position: relative;
+  background-color: var(--color-violeta);
+  isolation: isolate;
+}
+
+.padrao-modulos::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.08;
+  background-color: var(--color-profundo);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Crect width='15' height='15' rx='5' fill='%23fff'/%3E%3C/svg%3E");
+  mask-size: 20px 20px;
+  mask-repeat: repeat;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

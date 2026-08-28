@@ -1,0 +1,79 @@
+# Implantação na VPS KVM da Hostinger.
+#
+# Sobe o Postgres, aplica as migrações, sobe a aplicação e um Caddy que termina
+# o TLS. O Caddy emite e renova o certificado sozinho — numa VPS autogerida por
+# uma pessoa só, isso remove a tarefa que mais costuma ser esquecida.
+#
+#   docker compose up -d --build
+#
+# As migrações rodam como serviço próprio, antes da aplicação: nenhum passo
+# manual a ser lembrado depois de cada atualização.
+
+services:
+  banco:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: plana
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: plana
+    volumes:
+      - dados-do-banco:/var/lib/postgresql/data
+    # Sem `ports`: o banco só é alcançável pela rede interna do Compose.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plana -d plana"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migracoes:
+    build:
+      context: .
+      target: ferramentas
+    restart: "no"
+    depends_on:
+      banco:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://plana:${POSTGRES_PASSWORD}@banco:5432/plana?schema=public
+
+  app:
+    build:
+      context: .
+      target: producao
+    restart: unless-stopped
+    depends_on:
+      migracoes:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://plana:${POSTGRES_PASSWORD}@banco:5432/plana?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:?defina AUTH_SECRET no .env}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT}
+    volumes:
+      # Imagens-base de certificado e material de apoio enviados pelo
+      # organizador. Fora da imagem, para sobreviverem ao próximo deploy.
+      - arquivos:/app/arquivos
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO:?defina DOMINIO no .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-dados:/data
+      - caddy-config:/config
+
+volumes:
+  dados-do-banco:
+  arquivos:
+  caddy-dados:
+  caddy-config:
