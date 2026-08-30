@@ -16,12 +16,15 @@ do código citam a seção do documento que justifica cada decisão.
 | Modelo de dados | Schema completo em PostgreSQL, com a retenção mínima expressa no próprio schema |
 | Conta e consentimento | Cadastro com perfis, atualização de e-mail e telefone, troca e recuperação de senha, sessão própria e consentimento por finalidade |
 | Evento | Criação e edição com vários palestrantes, pino manual no mapa, fuso do Acre com espelho de Brasília, banner, publicação, despublicação, cancelamento, exclusão lógica e QRs |
-| Agenda pública | Home pesquisável com banners, filtros de inscrições abertas e eventos encerrados |
+| Vagas | Limite por modalidade — sala e transmissão contadas em separado —, com "sem limite" como padrão e reserva sob transação serializável |
+| Modalidade da inscrição | Evento híbrido pergunta ao participante se ele assiste no local ou pela transmissão; presencial e online não perguntam |
+| Agenda pública | Home pesquisável com banners, etiqueta de gratuidade em cada evento, marcação de vagas esgotadas e filtros de inscrições abertas e eventos encerrados |
+| Salvar na agenda | Botão do inscrito para o Google Agenda (por URL) e para Apple, Outlook e demais (arquivo `.ics`), sem guardar dado nenhum |
 | Presença | Leitura do QR cruzada com login e geolocalização (70 m), lançamento manual pela organização |
 | Certificado | Gerado sob demanda em PDF A4 paisagem sobre a imagem-base do evento — ou sobre o modelo padrão mantido pela plataforma —, com bloco de validação e consulta pública. A validação digital substitui a assinatura |
 | Presença a distância | Página própria por evento online ou híbrido, com código pessoal do participante e limite de tentativas |
 | Painel do gestor | Cadastro de instituições com logotipo, imagem-base do certificado e material de apoio para os inscritos |
-| Configurações globais | Modelo padrão de certificado enviado uma única vez e aplicado a todo evento novo, substituível por evento |
+| Configurações globais | Modelo padrão de certificado enviado uma única vez e aplicado a todo evento novo, substituível por evento; gabarito de medidas publicado pelo master e baixado pelo organizador |
 | Suporte | Chamados com conversa, estados de atendimento e notificações para participante e organizador |
 | Notificações | Central interna mais push do navegador, com o caminho de instalação do iOS tratado |
 | PWA | Manifesto, service worker, ícones e ícone *maskable* gerados da especificação da marca |
@@ -301,6 +304,68 @@ promessa.
 
 O primeiro master nasce por `npm run organizador`, porque não há quem o crie.
 
+## Vagas e modalidade da inscrição
+
+O evento pode limitar quantas inscrições aceita, e o limite é **por modalidade**:
+`vagasPresencial` e `vagasOnline` são colunas distintas porque a sala e a
+transmissão se esgotam por motivos distintos — cadeiras de um lado, licença de
+sala virtual (ou nada) do outro. Uma não fecha a outra.
+
+**Nulo é sem limite**, e é o padrão de todo evento novo e de todo evento que já
+existia antes desta versão: a inscrição simplesmente não fecha por lotação. Não
+se confunde com limite zero, que fecharia desde o primeiro instante. É a resposta
+ao evento online, que costuma não ter lotação nenhuma.
+
+Como consequência direta, a inscrição passou a registrar **em que modalidade** a
+pessoa participa (`Inscricao.modalidade`). Em evento presencial e em evento
+online não há o que perguntar — a modalidade é a do evento, e o servidor ignora
+qualquer escolha vinda do formulário. Em evento híbrido o participante escolhe,
+e é essa escolha que separa as duas contagens.
+
+A reserva da vaga acontece em `src/lib/lotacao.ts`, dentro de uma transação
+**serializável**: contar e depois inserir, em duas idas ao banco, deixaria uma
+janela em que duas pessoas passam pela última vaga. O conflito que o Postgres
+levanta (`P2034`) é tratado com uma segunda tentativa, ao fim da qual ou há
+lugar ou sai a mensagem de lotação.
+
+Reduzir o limite abaixo do que já foi ocupado **não cancela inscrição de
+ninguém**: a inscrição apenas para de aceitar gente nova. E estreitar a
+modalidade de um evento que já tem inscritos (de híbrido para presencial, por
+exemplo) é recusado enquanto houver inscrição ativa na modalidade que sairia —
+quem resolve isso com os inscritos é a organização, não uma edição silenciosa.
+
+## Inscrição gratuita
+
+A PlanA **não trabalha com inscrição paga**: não há campo de valor no cadastro do
+evento, não há cobrança, não há registro de pagamento. As colunas `gratuito`,
+`valorCentavos` e `instrucoesPagamento` foram removidas do schema — guardar campo
+que só pode ter um valor é guardar dado sem finalidade.
+
+O que permanece é o **dizer**: a agenda pública marca cada evento como
+`Gratuito`, na vitrine e na página do evento. Dizer é diferente de não cobrar —
+quem chega precisa saber de pronto que não vai pagar, e o silêncio é o que gera a
+dúvida. O rótulo mora em `src/lib/inscricao-valor.ts`.
+
+## Salvar o evento na agenda pessoal
+
+Quem está inscrito vê, na página do evento e em **Minha conta**, o botão *Salvar
+na minha agenda*, com dois caminhos:
+
+- **Google Agenda** — um endereço de "novo evento já preenchido"
+  (`calendar.google.com/calendar/render?action=TEMPLATE&…`). O navegador abre o
+  Google com os campos prontos e a pessoa confirma dentro da conta dela;
+- **Apple, Outlook e demais** — o arquivo `.ics` servido por
+  `/eventos/[slug]/agenda.ics`, no formato padrão de calendário (RFC 5545). No
+  iPhone e no Mac, abrir o arquivo já propõe adicionar ao Calendário.
+
+O que a plataforma deliberadamente **não** faz: pedir acesso à agenda de
+ninguém, guardar token de calendário ou registrar que alguém salvou o evento.
+Integração por API exigiria autorização OAuth e um token guardado no banco —
+dado novo, de finalidade nova, para uma comodidade que o link resolve sem criar
+dado nenhum. Só entra no arquivo o que já é público na página do evento: nome,
+descrição, horário, local ou meio de transmissão e o endereço. Nada do
+participante.
+
 ## Campos personalizados de inscrição
 
 Cada instituição pergunta algo diferente — o período que o aluno cursa, a lotação
@@ -308,16 +373,22 @@ da servidora, o número da OAB. Engessar isso no schema obrigaria a alterar o
 banco a cada evento, e o organizador dependeria do desenvolvedor para uma
 pergunta de uma linha.
 
+**É um campo por evento**, e o limite é decisão de projeto, não provisório:
+personalização e coleta mínima puxam para lados opostos, e um campo é o ponto em
+que o organizador consegue perguntar o que só ele sabe que precisa sem que o
+formulário vire cadastro. A tela diz isso ao lado do formulário, para que quem
+procura o botão de criar o segundo campo encontre ali a razão de ele não existir.
+
 Sem campo configurado, a inscrição se efetiva no clique, como sempre foi:
-nenhuma tela nova aparece para quem não precisa dela. Com um campo ou mais, o
+nenhuma tela nova aparece para quem não precisa dela. Com o campo criado, o
 participante passa por `/eventos/[slug]/inscricao` antes da confirmação.
 
 O preço da liberdade é que a plataforma deixa de saber, de antemão, que dados
-coleta — e responde como controladora pelo que for coletado. Daí três travas: o
-texto de apoio é onde o organizador declara a finalidade e o participante a lê;
-a tela de configuração adverte sobre dado sensível do art. 11 e sobre o princípio
-da necessidade do art. 6º, III; e a responsabilidade pelo que se pergunta fica
-registrada como do organizador.
+coleta. Daí as travas: o limite de um campo; o texto de apoio, onde o organizador
+declara a finalidade e o participante a lê; a advertência da tela de configuração
+sobre dado sensível do art. 11 e sobre o princípio da necessidade do art. 6º, III;
+e a responsabilidade pelo que se pergunta, que fica registrada como do
+organizador.
 
 Campo não se apaga: arquiva-se. A resposta já dada integra o registro daquela
 inscrição, e sumir com a pergunta deixaria a resposta órfã no relatório, sem
@@ -411,6 +482,22 @@ só então descarta o arquivo antigo; e a rota de emissão recorre ao padrão qu
 o evento estiver sem imagem-base, para que nenhum certificado saia sobre fundo
 branco por esquecimento.
 
+### Gabarito do certificado
+
+A automação escreve o nome do participante, os dados do evento e o bloco de
+validação sempre nas mesmas posições. Um organizador que não saiba onde ficam
+essas áreas desenha por cima delas, e descobre o problema quando o primeiro
+certificado sai ilegível — com o evento já encerrado.
+
+O **gabarito de medidas** resolve isso: o master o publica em **Painel →
+Configurações → Gabarito do certificado** (PNG, JPG ou PDF de até 10 MB, A4
+paisagem — 297 × 210 mm, ou 3508 × 2480 px a 300 dpi), e o organizador o baixa
+por um botão colocado ao lado do envio da imagem-base, na página do evento. Ele
+mora na tabela `Configuracao`, e não no repositório, justamente para que a
+administração possa trocá-lo sozinha quando o desenho do certificado mudar, sem
+implantação. Enquanto não houver gabarito publicado, o botão não aparece e a
+tela orienta pelas medidas em texto.
+
 O banner pode ser enviado ou substituído diretamente na página de gestão do
 evento e aparece no topo da página pública. A mesma página permite editar os
 dados principais e controlar publicação, cancelamento e exclusão lógica.
@@ -436,6 +523,32 @@ depender de acesso ao Google Fonts.
 ---
 
 ## Histórico de atualizações
+
+### 30/08/2026 — Vagas, modalidade da inscrição, gabarito e fim da inscrição paga
+
+Migração `20260903000000_vagas_modalidade_gabarito_e_fim_da_inscricao_paga`.
+
+1. **Vagas por modalidade** — `Evento.vagasPresencial` e `Evento.vagasOnline`,
+   nulos por padrão (sem limite). Nenhum evento já existente passa a fechar.
+2. **Modalidade da inscrição** — `Inscricao.modalidade`, com enum
+   `ModalidadeInscricao`. As inscrições já existentes herdam a modalidade do
+   evento; no híbrido, que nunca perguntou, ficam como `PRESENCIAL` e a lista de
+   inscritos mostra a modalidade de cada um para conferência.
+3. **Gabarito do certificado** — `Configuracao.gabaritoCertificadoArquivoId`,
+   enviado pelo master e baixado pelo organizador ao lado da imagem-base.
+4. **Fim da inscrição paga** — as colunas `gratuito`, `valorCentavos` e
+   `instrucoesPagamento` caem. **Antes de aplicar em produção**, confira se há
+   evento cadastrado como pago, porque valor e instruções são descartados:
+
+   ```sql
+   SELECT "codigoEvento", "nome", "valorCentavos", "instrucoesPagamento"
+     FROM "Evento" WHERE "gratuito" = false;
+   ```
+
+5. **Um campo personalizado por evento** — `LIMITE_DE_CAMPOS` passa de 20 para 1,
+   com aviso ao lado do formulário explicando que o limite é decisão de projeto.
+   Eventos que já tenham mais de um campo ativo continuam funcionando: o limite
+   só barra a criação de campo novo.
 
 ### 29/08/2026 — Implantação do pacote de instituições e controles administrativos
 

@@ -5,6 +5,11 @@ import { Cartao, Etiqueta, Titulo } from "@/components/ui";
 import { dataLongaAcre, etiquetaDoisFusos, formatarEm, FUSO_ACRE } from "@/lib/fuso";
 import { AvisoInstalacaoIOS } from "@/components/AvisoInstalacaoIOS";
 import { CodigoDeUsuario } from "@/components/CodigoDeUsuario";
+import { SalvarNaAgenda } from "@/components/SalvarNaAgenda";
+import { urlGoogleAgenda } from "@/lib/agenda";
+import { localParaAgenda } from "@/lib/agenda-evento";
+import { origemPublica } from "@/lib/origem";
+import { ROTULO_MODALIDADE_INSCRICAO, exigeEscolhaDeModalidade } from "@/lib/vagas";
 
 export const metadata = { title: "Minha conta" };
 
@@ -20,7 +25,19 @@ async function carregarInscricoes(usuarioId: string) {
     orderBy: { evento: { inicioEm: "desc" } },
     include: {
       evento: {
-        select: { nome: true, slug: true, inicioEm: true, fimEm: true, modalidade: true, canceladoEm: true },
+        select: {
+          nome: true,
+          slug: true,
+          descricao: true,
+          inicioEm: true,
+          fimEm: true,
+          modalidade: true,
+          localNome: true,
+          localEndereco: true,
+          meioTransmissao: true,
+          codigoEvento: true,
+          canceladoEm: true,
+        },
       },
       presenca: { select: { registradaEm: true } },
     },
@@ -35,12 +52,13 @@ async function carregarInscricoes(usuarioId: string) {
 
 export default async function PaginaConta() {
   const sessao = await exigirSessao();
-  const [conta, { proximos, passados }] = await Promise.all([
+  const [conta, { proximos, passados }, origem] = await Promise.all([
     prisma.usuario.findUniqueOrThrow({
       where: { id: sessao.usuarioId },
       select: { codigoUsuario: true, codigoUsuarioTrocadoEm: true },
     }),
     carregarInscricoes(sessao.usuarioId),
+    origemPublica(),
   ]);
 
   return (
@@ -69,11 +87,8 @@ export default async function PaginaConta() {
         ) : (
           <ul className="mt-4 space-y-3">
             {proximos.map((inscricao) => (
-              <li key={inscricao.id}>
-                <Link
-                  href={`/eventos/${inscricao.evento.slug}`}
-                  className="block rounded-2xl border border-linha bg-white p-5 hover:border-violeta"
-                >
+              <li key={inscricao.id} className="rounded-2xl border border-linha bg-white p-5">
+                <Link href={`/eventos/${inscricao.evento.slug}`} className="block hover:text-violeta">
                   <h3 className="text-base font-bold tracking-[-0.01em]">{inscricao.evento.nome}</h3>
                   <p className="mt-1 text-sm text-texto-2">
                     {dataLongaAcre(inscricao.evento.inicioEm)}
@@ -81,12 +96,33 @@ export default async function PaginaConta() {
                   <p className="mt-1 font-mono text-xs text-texto-2">
                     {etiquetaDoisFusos(inscricao.evento.inicioEm)}
                   </p>
-                  {inscricao.evento.canceladoEm ? (
-                    <Etiqueta className="mt-3 block !text-erro">evento cancelado</Etiqueta>
-                  ) : inscricao.presenca ? (
-                    <Etiqueta className="mt-3 block !text-sucesso">presença registrada</Etiqueta>
-                  ) : null}
                 </Link>
+                {/* A modalidade só aparece quando houve escolha: dizer
+                    "presencial" num evento que só é presencial é ruído. */}
+                {exigeEscolhaDeModalidade(inscricao.evento.modalidade) ? (
+                  <Etiqueta className="mt-3 block">
+                    inscrição {ROTULO_MODALIDADE_INSCRICAO[inscricao.modalidade].toLocaleLowerCase("pt-BR")}
+                  </Etiqueta>
+                ) : null}
+                {inscricao.evento.canceladoEm ? (
+                  <Etiqueta className="mt-3 block !text-erro">evento cancelado</Etiqueta>
+                ) : inscricao.presenca ? (
+                  <Etiqueta className="mt-3 block !text-sucesso">presença registrada</Etiqueta>
+                ) : null}
+                {inscricao.evento.canceladoEm ? null : (
+                  <SalvarNaAgenda
+                    urlGoogle={urlGoogleAgenda({
+                      nome: inscricao.evento.nome,
+                      descricao: inscricao.evento.descricao,
+                      inicioEm: inscricao.evento.inicioEm,
+                      fimEm: inscricao.evento.fimEm,
+                      local: localParaAgenda(inscricao.evento),
+                      url: `${origem}/eventos/${inscricao.evento.slug}`,
+                      codigoEvento: inscricao.evento.codigoEvento,
+                    })}
+                    urlIcs={`/eventos/${inscricao.evento.slug}/agenda.ics`}
+                  />
+                )}
               </li>
             ))}
           </ul>

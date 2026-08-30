@@ -91,6 +91,7 @@ export function ImagemBaseDoCertificado({
   arquivoId,
   noPadrao,
   temModeloPadrao,
+  gabaritoArquivoId,
 }: {
   eventoId: string;
   arquivoId: string | null;
@@ -98,6 +99,11 @@ export function ImagemBaseDoCertificado({
   noPadrao: boolean;
   /** Existe modelo padrão configurado para o qual voltar ao remover a arte. */
   temModeloPadrao: boolean;
+  /**
+   * Gabarito de medidas publicado pela administração, quando houver. É o
+   * arquivo que o organizador baixa antes de desenhar a própria arte.
+   */
+  gabaritoArquivoId: string | null;
 }) {
   const [estado, acao, pendente] = useActionState(enviarImagemBase, INICIAL);
   const [removendo, iniciar] = useTransition();
@@ -106,10 +112,35 @@ export function ImagemBaseDoCertificado({
     <Cartao>
       <Titulo nivel={3}>Imagem-base do certificado</Titulo>
       <p className="mt-2 text-xs text-texto-2">
-        A4 paisagem, apenas frente. É o fundo sobre o qual o certificado é montado — a PlanA não
-        redesenha essa arte, só escreve por cima o nome do participante, os dados do evento e o
-        bloco de validação no rodapé. Sem imagem, o certificado sai sobre fundo branco.
+        A4 paisagem, apenas frente — 297 × 210 mm, ou 3508 × 2480 px a 300 dpi. É o fundo sobre o
+        qual o certificado é montado: a PlanA não redesenha essa arte, só escreve por cima o nome
+        do participante, os dados do evento e o bloco de validação no rodapé. Sem imagem, o
+        certificado sai sobre fundo branco.
       </p>
+
+      {/* O gabarito fica junto do envio, e não numa página de ajuda: é aqui,
+          na hora de mandar a imagem, que o organizador descobre que precisa
+          saber onde a automação vai escrever. */}
+      {gabaritoArquivoId ? (
+        <div className="mt-3 rounded-xl border border-linha bg-superficie p-3">
+          <a
+            href={`/arquivos/${gabaritoArquivoId}`}
+            className="text-sm font-semibold text-violeta hover:text-profundo"
+          >
+            Baixar gabarito do certificado ↓
+          </a>
+          <p className="mt-1 text-xs text-texto-2">
+            Arquivo com as medidas e as áreas reservadas à automação. Produza sua arte sobre ele
+            para que nada importante fique embaixo do que a plataforma escreve.
+          </p>
+        </div>
+      ) : (
+        <p className="mt-3 rounded-xl border border-dashed border-linha p-3 text-xs text-texto-2">
+          A administração da plataforma ainda não publicou o gabarito de medidas. Enquanto isso,
+          use A4 paisagem e deixe livres o miolo, onde entram o nome e os dados do evento, e a
+          faixa do rodapé, onde entra o bloco de validação com QR Code.
+        </p>
+      )}
 
       {arquivoId ? (
         <p className="mt-3">

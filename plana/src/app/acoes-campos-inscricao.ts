@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { escopoDeEventos, exigirOrganizador, exigirSessao } from "@/lib/sessao";
 import {
+  AVISO_LIMITE_DE_CAMPOS,
   LIMITE_DE_CAMPOS,
   LIMITE_DE_OPCOES,
   camposAtivosDoEvento,
@@ -20,6 +21,8 @@ import {
   gravarRespostas,
   validarRespostas,
 } from "@/lib/campos-inscricao";
+import { modalidadeEscolhida, reservarVaga } from "@/lib/lotacao";
+import { corpoDaConfirmacao } from "@/lib/confirmacao-inscricao";
 import { notificar } from "@/lib/notificacoes";
 import type { TipoCampoInscricao } from "@/generated/prisma/client";
 
@@ -93,9 +96,7 @@ export async function criarCampoInscricao(
     where: { eventoId, arquivadoEm: null },
   });
   if (ativos >= LIMITE_DE_CAMPOS) {
-    return {
-      erro: `Este evento já tem ${LIMITE_DE_CAMPOS} campos ativos. Arquive algum antes de criar outro.`,
-    };
+    return { erro: `${AVISO_LIMITE_DE_CAMPOS} Arquive o campo atual antes de criar outro.` };
   }
 
   const ultimo = await prisma.campoInscricao.findFirst({
@@ -146,38 +147,6 @@ export async function reativarCampoInscricao(eventoId: string, campoId: string) 
   revalidatePath(`/painel/eventos/${eventoId}/campos`);
 }
 
-/** Move o campo uma posição para cima ou para baixo. */
-export async function moverCampoInscricao(
-  eventoId: string,
-  campoId: string,
-  direcao: "cima" | "baixo",
-) {
-  await eventoDoGestor(eventoId);
-
-  const campos = await prisma.campoInscricao.findMany({
-    where: { eventoId, arquivadoEm: null },
-    orderBy: [{ ordem: "asc" }, { criadoEm: "asc" }],
-    select: { id: true },
-  });
-
-  const posicao = campos.findIndex((campo) => campo.id === campoId);
-  const destino = direcao === "cima" ? posicao - 1 : posicao + 1;
-  if (posicao < 0 || destino < 0 || destino >= campos.length) return;
-
-  const reordenados = [...campos];
-  [reordenados[posicao], reordenados[destino]] = [reordenados[destino], reordenados[posicao]];
-
-  // Reescreve a ordem inteira: renumerar tudo evita empates herdados de
-  // arquivamentos e reativações anteriores.
-  await prisma.$transaction(
-    reordenados.map((campo, indice) =>
-      prisma.campoInscricao.update({ where: { id: campo.id }, data: { ordem: indice } }),
-    ),
-  );
-
-  revalidatePath(`/painel/eventos/${eventoId}/campos`);
-}
-
 /**
  * Inscrição com respostas aos campos personalizados.
  *
@@ -202,6 +171,9 @@ export async function inscreverComRespostas(
       fimEm: true,
       canceladoEm: true,
       excluidoEm: true,
+      modalidade: true,
+      vagasPresencial: true,
+      vagasOnline: true,
     },
   });
   if (!evento || !evento.publicado || evento.excluidoEm) {
@@ -216,33 +188,29 @@ export async function inscreverComRespostas(
     return { erro: "Confira os campos destacados.", campos: validacao.erros };
   }
 
-  const existente = await prisma.inscricao.findUnique({
-    where: { eventoId_usuarioId: { eventoId, usuarioId: sessao.usuarioId } },
-    select: { id: true, canceladaEm: true },
+  const modalidade = modalidadeEscolhida(
+    evento.modalidade,
+    String(dados.get("modalidadeInscricao") ?? ""),
+  );
+
+  // A vaga é reservada antes de as respostas serem gravadas: numa disputa pela
+  // última, quem perde não deve deixar resposta gravada para uma inscrição que
+  // não existe.
+  const reserva = await reservarVaga({
+    eventoId,
+    usuarioId: sessao.usuarioId,
+    evento,
+    modalidade,
   });
+  if (!reserva.ok) return { erro: reserva.erro };
 
-  let inscricaoId: string;
-  if (existente) {
-    await prisma.inscricao.update({
-      where: { id: existente.id },
-      data: { canceladaEm: null },
-    });
-    inscricaoId = existente.id;
-  } else {
-    const criada = await prisma.inscricao.create({
-      data: { eventoId, usuarioId: sessao.usuarioId },
-      select: { id: true },
-    });
-    inscricaoId = criada.id;
-  }
-
-  await gravarRespostas(inscricaoId, validacao.respostas);
+  await gravarRespostas(reserva.inscricaoId, validacao.respostas);
 
   await notificar({
     usuarioId: sessao.usuarioId,
     tipo: "INSCRICAO_CONFIRMADA",
     titulo: "Inscrição confirmada",
-    corpo: `Sua inscrição em ${evento.nome} está confirmada. No dia, leia o QR Code projetado na sala para registrar presença.`,
+    corpo: corpoDaConfirmacao(evento.nome, modalidade),
     link: `/eventos/${evento.slug}`,
   });
 

@@ -17,9 +17,10 @@ export type EventoDaVitrine = {
   bannerArquivoId: string | null;
   organizadoras: string[];
   palestrantes: string[];
-  /** "Gratuito" ou o valor formatado. Calculado no servidor, exibido aqui. */
+  /** Etiqueta de gratuidade. Toda inscrição na PlanA é gratuita. */
   inscricao: string;
-  gratuito: boolean;
+  /** Todas as modalidades do evento estão lotadas. */
+  esgotado: boolean;
   estado: "ABERTO" | "ENCERRADO" | "CANCELADO";
 };
 
@@ -44,9 +45,12 @@ export function VitrineEventos({ eventos }: { eventos: EventoDaVitrine[] }) {
   const visiveis = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase("pt-BR");
     return eventos.filter((evento) => {
+      // Evento lotado não entra em "inscrições abertas" — não há o que abrir —
+      // nem em "encerrados", que é o histórico. Ele aparece em "todos", com a
+      // etiqueta de esgotado, que é o que descreve a situação dele.
       const passaFiltro =
         filtro === "TODOS" ||
-        (filtro === "ABERTOS" && evento.estado === "ABERTO") ||
+        (filtro === "ABERTOS" && evento.estado === "ABERTO" && !evento.esgotado) ||
         (filtro === "ENCERRADOS" && evento.estado !== "ABERTO");
       if (!passaFiltro) return false;
       if (!termo) return true;
@@ -126,26 +130,26 @@ export function VitrineEventos({ eventos }: { eventos: EventoDaVitrine[] }) {
                 <span
                   className={`absolute left-3 top-3 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] shadow-sm ${
                     evento.estado === "ABERTO"
-                      ? "bg-white text-sucesso"
+                      ? evento.esgotado
+                        ? "bg-white text-erro"
+                        : "bg-white text-sucesso"
                       : evento.estado === "CANCELADO"
                         ? "bg-erro text-white"
                         : "bg-tinta text-white"
                   }`}
                 >
-                  {ROTULOS_ESTADO[evento.estado]}
+                  {evento.estado === "ABERTO" && evento.esgotado
+                    ? "vagas esgotadas"
+                    : ROTULOS_ESTADO[evento.estado]}
                 </span>
               </div>
 
               <div className="p-5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="etiqueta text-violeta">{evento.modalidade}</span>
-                  <span
-                    className={
-                      evento.gratuito
-                        ? "rounded-full bg-sucesso/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sucesso"
-                        : "rounded-full bg-lilas px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-profundo"
-                    }
-                  >
+                  {/* Gratuidade dita em cada cartão: quem varre a agenda
+                      precisa saber, sem abrir o evento, que não vai pagar. */}
+                  <span className="rounded-full bg-sucesso/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sucesso">
                     {evento.inscricao}
                   </span>
                   {evento.organizadoras[0] ? (

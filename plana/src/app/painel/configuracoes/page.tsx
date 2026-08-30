@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { ehMaster, exigirOrganizador } from "@/lib/sessao";
-import { modeloPadraoDeCertificado } from "@/lib/configuracao";
+import { gabaritoDeCertificado, modeloPadraoDeCertificado } from "@/lib/configuracao";
 import { formatarTamanho } from "@/lib/armazenamento";
 import { dataCurtaAcre } from "@/lib/fuso";
 import { Aviso, Etiqueta, Titulo } from "@/components/ui";
-import { ModeloPadraoDeCertificado } from "./formulario";
+import { GabaritoDoCertificado, ModeloPadraoDeCertificado } from "./formulario";
 import { AdministracaoDeInstituicoes } from "./instituicoes";
 import { AdministracaoDeContas } from "./contas";
 import { TrilhaAdministrativa } from "./trilha";
@@ -14,16 +14,20 @@ export const metadata = { title: "Configurações" };
 /**
  * Configurações que valem para toda a plataforma.
  *
- * O modelo padrão de certificado é visível a qualquer gestor. As instituições
- * organizadoras e as contas são administradas apenas pelo master: é aqui que
- * ele cadastra a instituição, vincula a ela uma conta existente — ato que cria
+ * O modelo padrão de certificado é visível a qualquer gestor. O gabarito de
+ * medidas, as instituições organizadoras e as contas são administrados apenas
+ * pelo master: é aqui que ele publica o gabarito que os organizadores baixam,
+ * cadastra a instituição, vincula a ela uma conta existente — ato que cria
  * um organizador na PlanA — e opera as contas.
  */
 export default async function PaginaConfiguracoes() {
   const sessao = await exigirOrganizador();
   const master = ehMaster(sessao);
 
-  const modelo = await modeloPadraoDeCertificado();
+  const [modelo, gabarito] = await Promise.all([
+    modeloPadraoDeCertificado(),
+    gabaritoDeCertificado(),
+  ]);
   const eventosNoPadrao = modelo
     ? await prisma.evento.count({
         where: { certificadoBaseArquivoId: modelo.arquivoId, excluidoEm: null },
@@ -86,6 +90,36 @@ export default async function PaginaConfiguracoes() {
 
       {master ? (
         <>
+          <section className="mt-14 max-w-3xl">
+            <Etiqueta>administração</Etiqueta>
+            <Titulo nivel={2} className="mt-1">
+              Gabarito do certificado
+            </Titulo>
+            <p className="mt-2 text-sm text-texto-2">
+              O arquivo de medidas que o organizador baixa, ao lado do envio da imagem-base do
+              certificado, para produzir a arte já no tamanho certo e sem cobrir as áreas que a
+              plataforma escreve por cima. Fica aqui, e não no código, para que possa ser
+              atualizado sempre que o desenho do certificado mudar.
+            </p>
+            <div className="mt-4">
+              <GabaritoDoCertificado
+                gabarito={
+                  gabarito
+                    ? {
+                        arquivoId: gabarito.arquivoId,
+                        nomeOriginal: gabarito.nomeOriginal,
+                        tamanho: formatarTamanho(gabarito.tamanhoBytes),
+                        enviadoEm: dataCurtaAcre(gabarito.criadoEm),
+                        // O tipo vem dos bytes do arquivo, apurado no envio —
+                        // e não da extensão, que quem envia escolhe.
+                        ehImagem: gabarito.tipoMime.startsWith("image/"),
+                      }
+                    : null
+                }
+              />
+            </div>
+          </section>
+
           <section className="mt-14">
             <Etiqueta>administração</Etiqueta>
             <Titulo nivel={2} className="mt-1">

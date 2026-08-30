@@ -13,6 +13,9 @@ import { semInstituicaoAtiva } from "@/lib/organizadores";
 import { codigoCurto, codigoEvento, paraSlug, tokenQr, tokenRemoto } from "@/lib/codigos";
 import { doAcreParaUtc } from "@/lib/fuso";
 import { idDoModeloPadrao } from "@/lib/configuracao";
+import { modalidadeEscolhida, reservarVaga } from "@/lib/lotacao";
+import { modalidadesDeInscricao } from "@/lib/vagas";
+import { corpoDaConfirmacao } from "@/lib/confirmacao-inscricao";
 import { notificar } from "@/lib/notificacoes";
 
 export type EstadoEvento = { erro?: string; ok?: string; campos?: Record<string, string> };
@@ -30,16 +33,21 @@ const esquema = z
     latitude: z.coerce.number().min(-90).max(90).optional(),
     longitude: z.coerce.number().min(-180).max(180).optional(),
     cargaHorariaMinutos: z.coerce.number().int().min(15).max(60 * 24 * 30),
-    // Gratuidade: a plataforma não cobra nem processa pagamento. O campo existe
-    // para que o participante saiba antes de se inscrever, e para que o evento
-    // gratuito diga isso de forma expressa em vez de deixar em silêncio.
-    gratuito: z.boolean(),
-    valorReais: z.coerce
+    // Vagas: `undefined` é "sem limite", e é o que o formulário manda quando o
+    // organizador não marca o controle. Zero seria coisa diferente — evento
+    // fechado desde o primeiro instante —, e por isso o mínimo é 1.
+    vagasPresencial: z.coerce
       .number()
-      .min(0.01, "Informe um valor maior que zero.")
+      .int()
+      .min(1, "O limite tem de ser de pelo menos uma vaga.")
       .max(1_000_000)
       .optional(),
-    instrucoesPagamento: z.string().trim().max(2000).optional(),
+    vagasOnline: z.coerce
+      .number()
+      .int()
+      .min(1, "O limite tem de ser de pelo menos uma vaga.")
+      .max(1_000_000)
+      .optional(),
     tutorVirtualUrl: z.url("Endereço inválido.").optional().or(z.literal("")),
     palestrantes: z
       .array(
@@ -66,15 +74,15 @@ const esquema = z
     path: ["meioTransmissao"],
     message: "Informe o meio de transmissão.",
   })
-  .refine((d) => d.gratuito || d.valorReais !== undefined, {
-    path: ["valorReais"],
-    message: "Informe o valor da inscrição.",
+  .refine((d) => d.modalidade !== "PRESENCIAL" || d.vagasOnline === undefined, {
+    path: ["vagasOnline"],
+    // Evento sem transmissão não tem inscrição online para limitar. A trava é
+    // aqui e não só na tela: o formulário é reenviável.
+    message: "Evento presencial não aceita inscrição online.",
   })
-  .refine((d) => d.gratuito || Boolean(d.instrucoesPagamento), {
-    path: ["instrucoesPagamento"],
-    // Sem sistema de pagamento na plataforma, um evento pago sem instruções
-    // deixaria o participante sem saber como pagar.
-    message: "Explique como o participante deve efetuar o pagamento.",
+  .refine((d) => d.modalidade !== "ONLINE" || d.vagasPresencial === undefined, {
+    path: ["vagasPresencial"],
+    message: "Evento online não aceita inscrição presencial.",
   });
 
 function texto(dados: FormData, chave: string): string {
@@ -84,6 +92,17 @@ function texto(dados: FormData, chave: string): string {
 
 function opcional(dados: FormData, chave: string): string | undefined {
   return texto(dados, chave) || undefined;
+}
+
+/**
+ * Lê um limite de vagas.
+ *
+ * O interruptor manda: sem ele marcado, o número digitado é ignorado. Isso
+ * evita que um valor que ficou na tela antes de o organizador desmarcar o
+ * controle acabe gravado como limite.
+ */
+function vagas(dados: FormData, interruptor: string, campo: string): string | undefined {
+  return texto(dados, interruptor) === "on" ? opcional(dados, campo) : undefined;
 }
 
 function analisarFormulario(dados: FormData) {
@@ -106,9 +125,10 @@ function analisarFormulario(dados: FormData) {
     latitude: opcional(dados, "latitude"),
     longitude: opcional(dados, "longitude"),
     cargaHorariaMinutos: texto(dados, "cargaHorariaMinutos"),
-    gratuito: texto(dados, "gratuidade") !== "PAGO",
-    valorReais: opcional(dados, "valorReais")?.replace(",", "."),
-    instrucoesPagamento: opcional(dados, "instrucoesPagamento"),
+    // "Sem limite" é a ausência do número, não um número especial: o
+    // formulário deixa o campo vazio, e vazio vira `undefined` aqui.
+    vagasPresencial: vagas(dados, "limitarPresencial", "vagasPresencial"),
+    vagasOnline: vagas(dados, "limitarOnline", "vagasOnline"),
     tutorVirtualUrl: opcional(dados, "tutorVirtualUrl"),
     palestrantes: nomes.map((nome, indice) => ({
       nome,
@@ -214,11 +234,12 @@ export async function criarEvento(
       latitude: entrada.latitude ?? null,
       longitude: entrada.longitude ?? null,
       cargaHorariaMinutos: entrada.cargaHorariaMinutos,
-      gratuito: entrada.gratuito,
-      // Centavos inteiros: dinheiro em ponto flutuante acumula erro de
-      // arredondamento, e o valor aqui é o que o participante vai pagar.
-      valorCentavos: entrada.gratuito ? null : Math.round((entrada.valorReais ?? 0) * 100),
-      instrucoesPagamento: entrada.gratuito ? null : (entrada.instrucoesPagamento ?? null),
+      // Nulo é sem limite. A modalidade decide qual dos dois faz sentido: um
+      // evento presencial não tem lotação de transmissão para guardar.
+      vagasPresencial:
+        entrada.modalidade === "ONLINE" ? null : (entrada.vagasPresencial ?? null),
+      vagasOnline:
+        entrada.modalidade === "PRESENCIAL" ? null : (entrada.vagasOnline ?? null),
       tutorVirtualUrl: entrada.tutorVirtualUrl || null,
       certificadoBaseArquivoId,
       slug: await slugLivre(paraSlug(entrada.nome)),
@@ -267,6 +288,28 @@ export async function editarEvento(
     return { erro: "Confira os campos destacados.", campos: { fimLocal: "O término tem de vir depois do início." } };
   }
 
+  // Estreitar a modalidade de um evento que já tem inscritos deixaria gente
+  // inscrita numa forma de participação que o evento não oferece mais — sem
+  // QR projetado para ler, ou sem transmissão para assistir. A plataforma não
+  // decide por eles: quem tem de resolver isso com os inscritos é a
+  // organização, e o caminho é avisar e cancelar, não uma edição silenciosa.
+  const aceitas = modalidadesDeInscricao(entrada.modalidade);
+  const orfas = await prisma.inscricao.count({
+    where: {
+      eventoId: evento.id,
+      canceladaEm: null,
+      modalidade: { notIn: aceitas },
+    },
+  });
+  if (orfas > 0) {
+    return {
+      erro: "Confira os campos destacados.",
+      campos: {
+        modalidade: `Há ${orfas} inscrição(ões) ativa(s) numa modalidade que a nova configuração não aceita. Fale com os inscritos antes de mudar a modalidade do evento.`,
+      },
+    };
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.evento.update({
       where: { id: evento.id },
@@ -282,9 +325,10 @@ export async function editarEvento(
         longitude: entrada.modalidade === "ONLINE" ? null : (entrada.longitude ?? null),
         meioTransmissao: entrada.modalidade === "PRESENCIAL" ? null : (entrada.meioTransmissao ?? null),
         cargaHorariaMinutos: entrada.cargaHorariaMinutos,
-        gratuito: entrada.gratuito,
-        valorCentavos: entrada.gratuito ? null : Math.round((entrada.valorReais ?? 0) * 100),
-        instrucoesPagamento: entrada.gratuito ? null : (entrada.instrucoesPagamento ?? null),
+        vagasPresencial:
+          entrada.modalidade === "ONLINE" ? null : (entrada.vagasPresencial ?? null),
+        vagasOnline:
+          entrada.modalidade === "PRESENCIAL" ? null : (entrada.vagasOnline ?? null),
         tutorVirtualUrl: entrada.tutorVirtualUrl || null,
         tokenRemoto:
           entrada.modalidade === "PRESENCIAL"
@@ -308,39 +352,48 @@ export async function editarEvento(
   redirect(`/painel/eventos/${evento.id}`);
 }
 
-export async function inscrever(eventoId: string) {
+export async function inscrever(eventoId: string, modalidadeEscolhidaPeloUsuario?: string) {
   const sessao = await exigirSessao();
 
   const evento = await prisma.evento.findUnique({
     where: { id: eventoId },
-    select: { id: true, nome: true, slug: true, publicado: true, fimEm: true, canceladoEm: true, excluidoEm: true },
+    select: {
+      id: true,
+      nome: true,
+      slug: true,
+      publicado: true,
+      fimEm: true,
+      canceladoEm: true,
+      excluidoEm: true,
+      modalidade: true,
+      vagasPresencial: true,
+      vagasOnline: true,
+    },
   });
   if (!evento || !evento.publicado || evento.excluidoEm) return { erro: "Evento indisponível para inscrição." };
   if (evento.canceladoEm) return { erro: "Este evento foi cancelado." };
   if (evento.fimEm.getTime() < Date.now()) return { erro: "Este evento já foi encerrado." };
 
-  const jaInscrito = await prisma.inscricao.findUnique({
-    where: { eventoId_usuarioId: { eventoId, usuarioId: sessao.usuarioId } },
-    select: { id: true, canceladaEm: true },
+  // Em evento presencial ou online a escolha do participante é ignorada: a
+  // modalidade da inscrição é a do evento, e mandar outra pelo formulário não
+  // pode criar uma inscrição que o evento não oferece.
+  const modalidade = modalidadeEscolhida(evento.modalidade, modalidadeEscolhidaPeloUsuario);
+
+  const reserva = await reservarVaga({
+    eventoId,
+    usuarioId: sessao.usuarioId,
+    evento,
+    modalidade,
   });
-
-  if (jaInscrito && !jaInscrito.canceladaEm) return { ok: true as const, jaInscrito: true };
-
-  if (jaInscrito) {
-    await prisma.inscricao.update({
-      where: { id: jaInscrito.id },
-      data: { canceladaEm: null },
-    });
-  } else {
-    await prisma.inscricao.create({ data: { eventoId, usuarioId: sessao.usuarioId } });
-  }
+  if (!reserva.ok) return { erro: reserva.erro };
+  if (reserva.jaInscrito) return { ok: true as const, jaInscrito: true };
 
   // Seção 7: confirmação automática pela central de notificações da conta.
   await notificar({
     usuarioId: sessao.usuarioId,
     tipo: "INSCRICAO_CONFIRMADA",
     titulo: "Inscrição confirmada",
-    corpo: `Sua inscrição em ${evento.nome} está confirmada. No dia, leia o QR Code projetado na sala para registrar presença.`,
+    corpo: corpoDaConfirmacao(evento.nome, modalidade),
     link: `/eventos/${evento.slug}`,
   });
 

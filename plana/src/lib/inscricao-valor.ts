@@ -1,28 +1,20 @@
 /**
- * Apresentação do valor da inscrição.
+ * Gratuidade da inscrição.
  *
- * Módulo isomórfico de propósito: o mesmo texto tem de sair igual no formulário
- * do organizador, na vitrine, na página pública e no painel. Duas formatações
- * paralelas divergiriam justamente no caso que importa — o centavo.
+ * A PlanA não trabalha com inscrição paga: não há campo de valor no cadastro
+ * do evento, não há cobrança e não há registro de pagamento. Toda inscrição na
+ * plataforma é gratuita, e é por isso que o rótulo abaixo é constante e não
+ * coluna no banco — guardar um campo que só pode ter um valor é guardar dado
+ * sem finalidade.
  *
- * A PlanA não processa pagamento. O valor aqui é informação ao participante
- * antes da inscrição, não cobrança.
+ * O rótulo continua existindo, e aparecendo em cada evento da agenda pública,
+ * porque dizer é diferente de não cobrar: quem chega na página precisa saber
+ * de pronto que não vai pagar. Silêncio, aqui, é o que gera a dúvida.
  */
 
-const MOEDA = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
+export const ROTULO_GRATUITO = "Gratuito";
 
-export function formatarValor(centavos: number): string {
-  return MOEDA.format(centavos / 100);
-}
-
-/**
- * Rótulo curto para etiqueta e cartão da vitrine. O evento gratuito diz que é
- * gratuito de forma expressa: silêncio, aqui, é o que gera dúvida na inscrição.
- */
-export function rotuloDeGratuidade(gratuito: boolean, valorCentavos: number | null): string {
-  if (gratuito) return "Gratuito";
-  return valorCentavos !== null ? formatarValor(valorCentavos) : "Pago";
+/** Texto curto da etiqueta na vitrine, na página do evento e no relatório. */
+export function rotuloDeGratuidade(): string {
+  return ROTULO_GRATUITO;
 }

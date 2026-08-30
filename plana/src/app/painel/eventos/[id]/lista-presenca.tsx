@@ -3,11 +3,17 @@
 import { useState, useTransition } from "react";
 import { lancarPresenca } from "@/app/acoes-presenca";
 import { Aviso, Botao, Dado, Etiqueta } from "@/components/ui";
+import type { RotuloModalidadeInscricao } from "@/lib/vagas";
 
 type Inscricao = {
   id: string;
   nome: string;
   email: string;
+  /**
+   * Modalidade da inscrição, quando o evento tem as duas. Nula em evento
+   * presencial ou online, onde não houve escolha e a etiqueta seria ruído.
+   */
+  modalidade: RotuloModalidadeInscricao | null;
   presencaEm: string | null;
   metodo: "QR_GEOLOCALIZACAO" | "CODIGO_REMOTO" | "MANUAL" | null;
   codigoValidacao: string | null;
@@ -52,6 +58,9 @@ export function ListaPresenca({ inscricoes }: { inscricoes: Inscricao[] }) {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{inscricao.nome}</p>
               <p className="truncate text-xs text-texto-2">{inscricao.email}</p>
+              {inscricao.modalidade ? (
+                <Etiqueta className="mt-1 block">{inscricao.modalidade}</Etiqueta>
+              ) : null}
             </div>
 
             {inscricao.presencaEm ? (

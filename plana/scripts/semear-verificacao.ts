@@ -82,7 +82,11 @@ async function main() {
       instituicoes: { create: { instituicaoId: inst.id } },
     },
   });
-  await prisma.inscricao.create({ data: { eventoId: hibrido.id, usuarioId: part.id } });
+  // Híbrido: a semente inscreve na modalidade online, que é a que exercita a
+  // página de presença a distância impressa logo abaixo.
+  await prisma.inscricao.create({
+    data: { eventoId: hibrido.id, usuarioId: part.id, modalidade: "ONLINE" },
+  });
 
   console.log("SLUG=" + evento.slug);
   console.log("TOKEN_REMOTO=" + hibrido.tokenRemoto);

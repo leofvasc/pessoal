@@ -1,9 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { inscreverComRespostas, type EstadoCampo } from "@/app/acoes-campos-inscricao";
 import { Aviso, AreaTexto, Botao, Campo, Cartao, Entrada, Selecao } from "@/components/ui";
-import type { TipoCampoInscricao } from "@/generated/prisma/client";
+import {
+  EXPLICACAO_MODALIDADE_INSCRICAO,
+  ROTULO_MODALIDADE_INSCRICAO,
+  rotuloDeVagas,
+  type SituacaoDeVagas,
+} from "@/lib/vagas";
+import type { ModalidadeInscricao, TipoCampoInscricao } from "@/generated/prisma/client";
 
 const INICIAL: EstadoCampo = {};
 
@@ -28,14 +34,30 @@ export function FormularioDeInscricao({
   campos,
   respostas,
   jaInscrito,
+  vagas,
+  escolheModalidade,
+  modalidadeAtual,
 }: {
   eventoId: string;
   campos: CampoDoFormulario[];
   respostas: Record<string, string>;
   jaInscrito: boolean;
+  vagas: SituacaoDeVagas;
+  escolheModalidade: boolean;
+  modalidadeAtual: ModalidadeInscricao | null;
 }) {
   const acaoServidor = inscreverComRespostas.bind(null, eventoId);
   const [estado, acao, pendente] = useActionState(acaoServidor, INICIAL);
+
+  // Quem já escolheu mantém a escolha; quem não escolheu cai na primeira
+  // modalidade com vaga, porque oferecer a esgotada como padrão só produz um
+  // erro que a tela já sabia de antemão.
+  const [modalidade, setModalidade] = useState<ModalidadeInscricao>(
+    modalidadeAtual ??
+      vagas.find((linha) => !linha.esgotado)?.modalidade ??
+      vagas[0]?.modalidade ??
+      "PRESENCIAL",
+  );
 
   return (
     <form action={acao} className="mt-8 space-y-5">
@@ -45,6 +67,58 @@ export function FormularioDeInscricao({
         <Aviso titulo="Você já está inscrito">
           Enviar de novo atualiza as respostas abaixo, sem duplicar a inscrição.
         </Aviso>
+      ) : null}
+
+      {escolheModalidade ? (
+        <fieldset className="rounded-2xl border border-linha bg-white p-5">
+          <legend className="px-1 text-sm font-semibold text-tinta">
+            Como você vai participar?
+          </legend>
+          <div className="mt-2 space-y-2">
+            {vagas.map((linha) => {
+              // Trocar para uma modalidade esgotada não é possível; continuar
+              // na que já se ocupa, sim — a vaga já é da pessoa.
+              const indisponivel = linha.esgotado && modalidadeAtual !== linha.modalidade;
+              return (
+                <label
+                  key={linha.modalidade}
+                  className={
+                    indisponivel
+                      ? "flex cursor-not-allowed items-start gap-3 rounded-xl border border-linha px-4 py-3 opacity-60"
+                      : "flex cursor-pointer items-start gap-3 rounded-xl border border-linha px-4 py-3 hover:border-violeta"
+                  }
+                >
+                  <input
+                    type="radio"
+                    name="modalidadeInscricao"
+                    className="mt-1 size-4 shrink-0 accent-violeta"
+                    value={linha.modalidade}
+                    checked={modalidade === linha.modalidade}
+                    disabled={indisponivel}
+                    onChange={() => setModalidade(linha.modalidade)}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-tinta">
+                      {ROTULO_MODALIDADE_INSCRICAO[linha.modalidade]}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-texto-2">
+                      {EXPLICACAO_MODALIDADE_INSCRICAO[linha.modalidade]}
+                    </span>
+                    <span
+                      className={
+                        linha.esgotado
+                          ? "mt-1 block text-xs font-semibold text-erro"
+                          : "mt-1 block text-xs text-texto-2"
+                      }
+                    >
+                      {rotuloDeVagas(linha)}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
       ) : null}
 
       <Cartao className="space-y-5">

@@ -251,7 +251,10 @@ async function principal() {
   const eventoDepois = await prisma.evento.findUniqueOrThrow({ where: { id: dados.evento.id } });
   conferir("uma inscrição contabilizada", eventoDepois.inscricoesDeContasExcluidas === 1);
   conferir("uma presença contabilizada", eventoDepois.presencasDeContasExcluidas === 1);
-  conferir("evento continua gratuito por padrão", eventoDepois.gratuito === true);
+  conferir(
+    "evento continua sem limite de vagas por padrão",
+    eventoDepois.vagasPresencial === null && eventoDepois.vagasOnline === null,
+  );
 
   console.log("\n6. Exclusão de participante sem certificado");
   const semCert = await excluirConta(dados.semCertificado.id);

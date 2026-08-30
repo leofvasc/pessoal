@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import {
   arquivarCampoInscricao,
   criarCampoInscricao,
-  moverCampoInscricao,
   reativarCampoInscricao,
   type EstadoCampo,
 } from "@/app/acoes-campos-inscricao";
 import { Aviso, AreaTexto, Botao, Campo, Cartao, Entrada, Selecao, Titulo } from "@/components/ui";
+import { AVISO_LIMITE_DE_CAMPOS } from "@/lib/limites-inscricao";
 import type { TipoCampoInscricao } from "@/generated/prisma/client";
 
 const INICIAL: EstadoCampo = {};
@@ -48,9 +48,12 @@ type CampoListado = {
 export function GestaoDeCampos({
   eventoId,
   campos,
+  limiteAtingido,
 }: {
   eventoId: string;
   campos: CampoListado[];
+  /** Já existe o campo permitido: o formulário de criação sai da tela. */
+  limiteAtingido: boolean;
 }) {
   const criar = criarCampoInscricao.bind(null, eventoId);
   const [estado, acao, pendente] = useActionState(criar, INICIAL);
@@ -72,7 +75,7 @@ export function GestaoDeCampos({
   return (
     <>
       <section>
-        <Titulo nivel={2}>{ativos.length} campo(s) ativo(s)</Titulo>
+        <Titulo nivel={2}>{ativos.length === 1 ? "Campo ativo" : "Nenhum campo ativo"}</Titulo>
         {ativos.length === 0 ? (
           <Cartao className="mt-4">
             <p className="text-sm text-texto-2">
@@ -81,7 +84,7 @@ export function GestaoDeCampos({
           </Cartao>
         ) : (
           <div className="mt-4 space-y-2">
-            {ativos.map((campo, indice) => (
+            {ativos.map((campo) => (
               <Cartao key={campo.id}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -101,26 +104,8 @@ export function GestaoDeCampos({
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      disabled={processando || indice === 0}
-                      onClick={() => executar(() => moverCampoInscricao(eventoId, campo.id, "cima"))}
-                      className="rounded-lg px-2 py-1 text-sm text-texto-2 hover:bg-superficie hover:text-violeta disabled:opacity-30"
-                      aria-label="Mover para cima"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      disabled={processando || indice === ativos.length - 1}
-                      onClick={() =>
-                        executar(() => moverCampoInscricao(eventoId, campo.id, "baixo"))
-                      }
-                      className="rounded-lg px-2 py-1 text-sm text-texto-2 hover:bg-superficie hover:text-violeta disabled:opacity-30"
-                      aria-label="Mover para baixo"
-                    >
-                      ↓
-                    </button>
+                    {/* Com um campo por evento não há ordem a arrumar: as
+                        setas só apareceriam desabilitadas para sempre. */}
                     <button
                       type="button"
                       disabled={processando}
@@ -173,7 +158,25 @@ export function GestaoDeCampos({
       ) : null}
 
       <section className="mt-10">
-        <Titulo nivel={2}>Novo campo</Titulo>
+        <Titulo nivel={2}>{limiteAtingido ? "Criar outro campo" : "Novo campo"}</Titulo>
+
+        {/* A mensagem fica ao lado do campo, e não escondida numa página de
+            ajuda: quem procura o botão de adicionar o segundo campo tem de
+            encontrar aqui a razão de ele não existir. */}
+        <div className="mt-4">
+          <Aviso tom="informacao" titulo="Um campo, por opção">
+            {AVISO_LIMITE_DE_CAMPOS}
+          </Aviso>
+        </div>
+
+        {limiteAtingido ? (
+          <Cartao className="mt-4">
+            <p className="text-sm text-texto-2">
+              Este evento já tem o campo permitido. Para perguntar outra coisa, arquive o campo
+              atual acima — as respostas já dadas continuam no relatório — e crie o novo.
+            </p>
+          </Cartao>
+        ) : (
         <form action={acao} className="mt-4 space-y-4">
           {estado.erro ? <Aviso tom="erro">{estado.erro}</Aviso> : null}
           {estado.ok ? <Aviso tom="sucesso">Campo criado.</Aviso> : null}
@@ -232,6 +235,7 @@ export function GestaoDeCampos({
             </Botao>
           </Cartao>
         </form>
+        )}
       </section>
     </>
   );

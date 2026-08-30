@@ -29,7 +29,13 @@ import { escopoDeEventos, type Sessao } from "./sessao";
 import { formatarCargaHoraria, formatarEm, FUSO_ACRE } from "./fuso";
 import { nomeDeExibicao } from "./organizadores";
 import { rotuloDeGratuidade } from "./inscricao-valor";
-import type { MetodoPresenca } from "@/generated/prisma/client";
+import {
+  ROTULO_MODALIDADE_INSCRICAO,
+  modalidadesDeInscricao,
+  rotuloDeVagas,
+  situacaoDeVagas,
+} from "./vagas";
+import type { Modalidade, MetodoPresenca, ModalidadeInscricao } from "@/generated/prisma/client";
 
 const METODO: Record<MetodoPresenca, string> = {
   QR_GEOLOCALIZACAO: "QR Code no local",
@@ -46,6 +52,51 @@ function dataHora(valor: Date | null | undefined): string {
 
 function data(valor: Date | null | undefined): string {
   return valor ? formatarEm(valor, FUSO_ACRE, "dd/MM/yyyy") : "";
+}
+
+/**
+ * Linha de vagas do cabeçalho: quanto foi ocupado de quanto, por modalidade.
+ *
+ * O relatório é o documento que a organização entrega à instituição, e a
+ * pergunta "sobrou vaga?" é das primeiras que ele precisa responder — sem
+ * obrigar quem lê a contar linhas.
+ */
+/** O evento controla lotação em pelo menos uma das suas modalidades. */
+function temLimiteDeVagas(evento: {
+  vagasPresencial: number | null;
+  vagasOnline: number | null;
+}): boolean {
+  return evento.vagasPresencial !== null || evento.vagasOnline !== null;
+}
+
+function resumoDeVagas(
+  evento: { modalidade: Modalidade; vagasPresencial: number | null; vagasOnline: number | null },
+  ativas: Array<{ modalidade: ModalidadeInscricao }>,
+): string {
+  const ocupadasPresencial = ativas.filter((i) => i.modalidade === "PRESENCIAL").length;
+  const ocupadasOnline = ativas.length - ocupadasPresencial;
+
+  const linhas = situacaoDeVagas({
+    modalidade: evento.modalidade,
+    vagasPresencial: evento.vagasPresencial,
+    vagasOnline: evento.vagasOnline,
+    ocupadasPresencial,
+    ocupadasOnline,
+  });
+
+  const umaSo = modalidadesDeInscricao(evento.modalidade).length === 1;
+
+  return linhas
+    .map((linha) => {
+      const ocupacao =
+        linha.limite === null
+          ? `${linha.ocupadas} inscrição(ões), sem limite`
+          : `${linha.ocupadas} de ${linha.limite} (${rotuloDeVagas(linha).toLocaleLowerCase("pt-BR")})`;
+      return umaSo
+        ? ocupacao
+        : `${ROTULO_MODALIDADE_INSCRICAO[linha.modalidade]} ${ocupacao}`;
+    })
+    .join(" · ");
 }
 
 /** Cabeçalho com a identidade da plataforma, repetido nas duas planilhas. */
@@ -121,8 +172,8 @@ export async function relatorioDoEvento(
       localNome: true,
       meioTransmissao: true,
       cargaHorariaMinutos: true,
-      gratuito: true,
-      valorCentavos: true,
+      vagasPresencial: true,
+      vagasOnline: true,
       inscricoesDeContasExcluidas: true,
       presencasDeContasExcluidas: true,
       organizador: { select: { nome: true, email: true } },
@@ -139,6 +190,7 @@ export async function relatorioDoEvento(
         select: {
           criadaEm: true,
           canceladaEm: true,
+          modalidade: true,
           usuario: {
             select: { nome: true, email: true, telefone: true, perfil: true, perfilDetalhe: true },
           },
@@ -172,6 +224,7 @@ export async function relatorioDoEvento(
     "Perfil",
     "Detalhe do perfil",
     "Inscrição em",
+    "Modalidade da inscrição",
     "Situação da inscrição",
     "Presença",
     "Presença registrada em",
@@ -198,7 +251,8 @@ export async function relatorioDoEvento(
       `Código do evento: ${evento.codigoEvento} · Organização: ${organizadorNome}`,
       `Conta responsável: ${evento.organizador.nome} (${evento.organizador.email})`,
       `Realização: ${dataHora(evento.inicioEm)} a ${dataHora(evento.fimEm)} (horário do Acre) · Carga horária: ${formatarCargaHoraria(evento.cargaHorariaMinutos)}`,
-      `${evento.modalidade} · ${evento.localNome ?? evento.meioTransmissao ?? "—"} · Inscrição: ${rotuloDeGratuidade(evento.gratuito, evento.valorCentavos)}`,
+      `${evento.modalidade} · ${evento.localNome ?? evento.meioTransmissao ?? "—"} · Inscrição: ${rotuloDeGratuidade()}`,
+      `Vagas: ${resumoDeVagas(evento, ativas)}`,
       `Instituições: ${evento.instituicoes.map((i) => i.instituicao.nome).join(", ") || "—"}`,
       `Inscrições ativas: ${ativas.length} · Presenças registradas: ${presentes} · Contas excluídas pelos titulares: ${evento.inscricoesDeContasExcluidas} inscrição(ões), ${evento.presencasDeContasExcluidas} presença(s)`,
       `Emitido em ${dataHora(new Date())} por ${sessao.nome}.`,
@@ -219,6 +273,7 @@ export async function relatorioDoEvento(
       inscricao.usuario.perfil,
       inscricao.usuario.perfilDetalhe ?? "",
       dataHora(inscricao.criadaEm),
+      ROTULO_MODALIDADE_INSCRICAO[inscricao.modalidade],
       inscricao.canceladaEm ? `Cancelada em ${data(inscricao.canceladaEm)}` : "Ativa",
       inscricao.presenca ? "Sim" : "Não",
       dataHora(inscricao.presenca?.registradaEm),
@@ -305,8 +360,8 @@ export async function relatorioConsolidado(
       localNome: true,
       meioTransmissao: true,
       cargaHorariaMinutos: true,
-      gratuito: true,
-      valorCentavos: true,
+      vagasPresencial: true,
+      vagasOnline: true,
       publicado: true,
       canceladoEm: true,
       criadoEm: true,
@@ -322,6 +377,7 @@ export async function relatorioConsolidado(
       inscricoes: {
         select: {
           canceladaEm: true,
+          modalidade: true,
           presenca: { select: { metodo: true } },
           certificado: { select: { primeiraEmissaoEm: true } },
         },
@@ -374,6 +430,7 @@ export async function relatorioConsolidado(
     "Local ou transmissão",
     "Carga horária",
     "Inscrição",
+    "Vagas",
     "Situação",
     "Inscritos",
     "Cancelamentos",
@@ -431,7 +488,8 @@ export async function relatorioConsolidado(
       evento.modalidade,
       evento.localNome ?? evento.meioTransmissao ?? "",
       formatarCargaHoraria(evento.cargaHorariaMinutos),
-      rotuloDeGratuidade(evento.gratuito, evento.valorCentavos),
+      rotuloDeGratuidade(),
+      resumoDeVagas(evento, ativas),
       evento.canceladoEm ? "Cancelado" : evento.publicado ? "Publicado" : "Rascunho",
       inscritos,
       canceladas,
@@ -449,7 +507,9 @@ export async function relatorioConsolidado(
     ]);
   }
 
-  abaEventos.getColumn(18).numFmt = "0.0%";
+  // A posição vem da própria lista de títulos: acrescentar uma coluna no meio
+  // não pode desalinhar a formatação de porcentagem.
+  abaEventos.getColumn(titulosEventos.indexOf("Taxa de presença") + 1).numFmt = "0.0%";
   abaEventos.autoFilter = {
     from: { row: inicioEventos, column: 1 },
     to: { row: inicioEventos, column: titulosEventos.length },
@@ -471,7 +531,10 @@ export async function relatorioConsolidado(
     ["Eventos online", porModalidade("ONLINE")],
     ["Eventos híbridos", porModalidade("HIBRIDO")],
     ["Eventos cancelados", eventos.filter((e) => e.canceladoEm).length],
-    ["Eventos gratuitos", eventos.filter((e) => e.gratuito).length],
+    // Toda inscrição na PlanA é gratuita: a linha continua porque é a
+    // informação que a instituição confere no relatório, não porque varia.
+    ["Eventos gratuitos", eventos.length],
+    ["Eventos com limite de vagas", eventos.filter((e) => temLimiteDeVagas(e)).length],
     ["Total de inscritos", totalInscritos],
     ["Total de presentes", totalPresentes],
     [

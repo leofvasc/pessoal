@@ -4,7 +4,8 @@ import "server-only";
  * Configuração global da plataforma.
  *
  * Existe uma única linha, de id fixo `global`. É onde mora o que vale para
- * todos os eventos — hoje, o modelo-base padrão de certificado.
+ * todos os eventos: o modelo-base padrão de certificado e o gabarito de
+ * medidas que o organizador baixa antes de produzir a própria arte.
  *
  * Manual de identidade visual, seção 15: a arte do certificado pertence às
  * organizadoras e a PlanA não a redesenha. O modelo padrão daqui não contraria
@@ -16,13 +17,16 @@ import { prisma } from "./prisma";
 
 export const ID_CONFIGURACAO = "global";
 
-export type ModeloPadrao = {
+export type ArquivoDaConfiguracao = {
   arquivoId: string;
   caminho: string;
   nomeOriginal: string;
+  tipoMime: string;
   tamanhoBytes: number;
   criadoEm: Date;
 };
+
+export type ModeloPadrao = ArquivoDaConfiguracao;
 
 /** Garante a existência da linha única e a devolve. */
 export async function configuracao() {
@@ -30,7 +34,12 @@ export async function configuracao() {
     where: { id: ID_CONFIGURACAO },
     create: { id: ID_CONFIGURACAO },
     update: {},
-    select: { id: true, certificadoBasePadraoArquivoId: true, atualizadoEm: true },
+    select: {
+      id: true,
+      certificadoBasePadraoArquivoId: true,
+      gabaritoCertificadoArquivoId: true,
+      atualizadoEm: true,
+    },
   });
 }
 
@@ -44,6 +53,7 @@ export async function modeloPadraoDeCertificado(): Promise<ModeloPadrao | null> 
           id: true,
           caminho: true,
           nomeOriginal: true,
+          tipoMime: true,
           tamanhoBytes: true,
           criadoEm: true,
         },
@@ -58,6 +68,7 @@ export async function modeloPadraoDeCertificado(): Promise<ModeloPadrao | null> 
     arquivoId: arquivo.id,
     caminho: arquivo.caminho,
     nomeOriginal: arquivo.nomeOriginal,
+    tipoMime: arquivo.tipoMime,
     tamanhoBytes: arquivo.tamanhoBytes,
     criadoEm: arquivo.criadoEm,
   };
@@ -81,4 +92,55 @@ export async function idDoModeloPadrao(): Promise<string | null> {
 export async function ehModeloPadrao(arquivoId: string | null): Promise<boolean> {
   if (!arquivoId) return false;
   return (await idDoModeloPadrao()) === arquivoId;
+}
+
+/**
+ * Gabarito de medidas do certificado.
+ *
+ * Uma imagem só, mantida pela administração da plataforma, que mostra ao
+ * organizador onde a automação vai escrever — nome do participante, dados do
+ * evento e bloco de validação no rodapé. Ele a usa como guia para produzir a
+ * imagem-base do evento sem colocar arte nas áreas que serão sobrescritas.
+ *
+ * Fica no banco, e não no repositório, porque o desenho do certificado muda:
+ * quando mudar, a administração troca o arquivo aqui e o gabarito que os
+ * organizadores baixam passa a ser o novo, sem depender de implantação.
+ */
+export async function gabaritoDeCertificado(): Promise<ArquivoDaConfiguracao | null> {
+  const atual = await prisma.configuracao.findUnique({
+    where: { id: ID_CONFIGURACAO },
+    select: {
+      gabaritoCertificadoArquivo: {
+        select: {
+          id: true,
+          caminho: true,
+          nomeOriginal: true,
+          tipoMime: true,
+          tamanhoBytes: true,
+          criadoEm: true,
+        },
+      },
+    },
+  });
+
+  const arquivo = atual?.gabaritoCertificadoArquivo;
+  if (!arquivo) return null;
+
+  return {
+    arquivoId: arquivo.id,
+    caminho: arquivo.caminho,
+    nomeOriginal: arquivo.nomeOriginal,
+    tipoMime: arquivo.tipoMime,
+    tamanhoBytes: arquivo.tamanhoBytes,
+    criadoEm: arquivo.criadoEm,
+  };
+}
+
+/** Só o id, para quando basta montar o link de download. */
+export async function idDoGabarito(): Promise<string | null> {
+  const atual = await prisma.configuracao.findUnique({
+    where: { id: ID_CONFIGURACAO },
+    select: { gabaritoCertificadoArquivoId: true },
+  });
+  return atual?.gabaritoCertificadoArquivoId ?? null;
 }

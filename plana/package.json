@@ -17,7 +17,8 @@
     "organizador": "NODE_OPTIONS=--conditions=react-server tsx --env-file-if-exists=.env scripts/criar-organizador.ts",
     "semear:verificacao": "NODE_OPTIONS=--conditions=react-server tsx --env-file-if-exists=.env scripts/semear-verificacao.ts",
     "testar:exclusao": "NODE_OPTIONS=--conditions=react-server tsx --env-file-if-exists=.env scripts/testar-exclusao.ts",
-    "testar:organizadores": "NODE_OPTIONS=--conditions=react-server tsx --env-file-if-exists=.env scripts/testar-organizadores.ts"
+    "testar:organizadores": "NODE_OPTIONS=--conditions=react-server tsx --env-file-if-exists=.env scripts/testar-organizadores.ts",
+    "testar:vagas": "NODE_OPTIONS=--conditions=react-server tsx --env-file-if-exists=.env scripts/testar-vagas.ts"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.3.0",

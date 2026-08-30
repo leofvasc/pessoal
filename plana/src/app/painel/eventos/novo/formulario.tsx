@@ -20,7 +20,7 @@ import {
   formatarEm,
   doAcreParaUtc,
 } from "@/lib/fuso";
-import { formatarValor } from "@/lib/inscricao-valor";
+import { ROTULO_GRATUITO } from "@/lib/inscricao-valor";
 
 // O mapa só existe no cliente: o Leaflet toca em `window` ao ser importado.
 const MapaPino = dynamic(() => import("@/components/MapaPino").then((m) => m.MapaPino), {
@@ -81,6 +81,74 @@ function EspelhoBrasilia({ valorLocal }: { valorLocal: string }) {
   );
 }
 
+/**
+ * Controle de vagas de uma modalidade.
+ *
+ * O interruptor vem primeiro e o número depois, nessa ordem, porque a decisão
+ * é essa: primeiro se decide se há limite, e só então quanto. Sem limite é o
+ * estado padrão — evento que não controla lotação não deve ganhar um número
+ * por descuido, e a inscrição não fecha sozinha.
+ */
+function ControleDeVagas({
+  titulo,
+  explicacao,
+  nomeInterruptor,
+  nomeCampo,
+  limitar,
+  aoAlternar,
+  valor,
+  aoDigitar,
+  erro,
+}: {
+  titulo: string;
+  explicacao: string;
+  nomeInterruptor: string;
+  nomeCampo: string;
+  limitar: boolean;
+  aoAlternar: (valor: boolean) => void;
+  valor: string;
+  aoDigitar: (valor: string) => void;
+  erro?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-linha bg-superficie p-4">
+      <Etiqueta>{titulo}</Etiqueta>
+      <p className="mt-2 text-xs text-texto-2">{explicacao}</p>
+
+      <label className="mt-3 flex items-center gap-3">
+        <input
+          type="checkbox"
+          name={nomeInterruptor}
+          checked={limitar}
+          onChange={(e) => aoAlternar(e.target.checked)}
+          className="size-4 accent-violeta"
+        />
+        <span className="text-sm text-tinta">Limitar o número de vagas</span>
+      </label>
+
+      {limitar ? (
+        <div className="mt-3">
+          <Campo rotulo="Número de vagas" erro={erro} obrigatorio>
+            <Entrada
+              name={nomeCampo}
+              type="number"
+              min={1}
+              step={1}
+              value={valor}
+              onChange={(e) => aoDigitar(e.target.value)}
+              required
+            />
+          </Campo>
+        </div>
+      ) : (
+        <p className="mt-3 text-xs font-semibold text-sucesso">
+          Sem limite: a inscrição não fecha por lotação.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export type DadosIniciaisEvento = {
   id: string;
   nome: string;
@@ -94,9 +162,9 @@ export type DadosIniciaisEvento = {
   latitude: number | null;
   longitude: number | null;
   cargaHorariaMinutos: number;
-  gratuito: boolean;
-  valorReais: string;
-  instrucoesPagamento: string;
+  /** Vazio significa sem limite — é o que o formulário lê e o que ele grava. */
+  vagasPresencial: string;
+  vagasOnline: string;
   tutorVirtualUrl: string;
   palestrantes: Array<{
     nome: string;
@@ -119,12 +187,15 @@ export function FormularioEvento({ evento }: { evento?: DadosIniciaisEvento }) {
   const [cargaHoraria, setCargaHoraria] = useState(
     String(evento?.cargaHorariaMinutos ?? 240),
   );
-  // Evento novo nasce gratuito: é a regra da casa, e o padrão deve ser o caso
-  // comum, não o excepcional.
-  const [gratuidade, setGratuidade] = useState<"GRATUITO" | "PAGO">(
-    evento && !evento.gratuito ? "PAGO" : "GRATUITO",
+  // Sem limite é o padrão: um evento que não precisa controlar lotação não
+  // deve ganhar um número por descuido, e o número que fecha inscrição tem de
+  // ser uma escolha consciente do organizador.
+  const [limitarPresencial, setLimitarPresencial] = useState(
+    Boolean(evento?.vagasPresencial),
   );
-  const [valorReais, setValorReais] = useState(evento?.valorReais ?? "");
+  const [vagasPresencial, setVagasPresencial] = useState(evento?.vagasPresencial ?? "");
+  const [limitarOnline, setLimitarOnline] = useState(Boolean(evento?.vagasOnline));
+  const [vagasOnline, setVagasOnline] = useState(evento?.vagasOnline ?? "");
   const proximaChave = useRef(evento?.palestrantes.length ?? 1);
   const [palestrantes, setPalestrantes] = useState<PalestranteFormulario[]>(
     evento?.palestrantes.length
@@ -141,9 +212,10 @@ export function FormularioEvento({ evento }: { evento?: DadosIniciaisEvento }) {
 
   const temLocal = modalidade !== "ONLINE";
   const temTransmissao = modalidade !== "PRESENCIAL";
-  const pago = gratuidade === "PAGO";
-  const valorEmCentavos = Math.round(Number(valorReais.replace(",", ".")) * 100);
-  const valorValido = Number.isFinite(valorEmCentavos) && valorEmCentavos > 0;
+  // As vagas seguem a modalidade: sala para quem tem sala, transmissão para
+  // quem transmite, as duas no híbrido — que é onde elas se contam separado.
+  const temVagasPresencial = modalidade !== "ONLINE";
+  const temVagasOnline = modalidade !== "PRESENCIAL";
 
   function alterarPalestrante(
     indice: number,
@@ -253,66 +325,8 @@ export function FormularioEvento({ evento }: { evento?: DadosIniciaisEvento }) {
       </Cartao>
 
       <Cartao className="space-y-4">
-        <Titulo nivel={3}>Inscrição</Titulo>
-        <p className="text-xs text-texto-2">
-          A PlanA não processa pagamento. O que se define aqui é a informação que o participante lê
-          antes de se inscrever — e o evento gratuito passa a dizer isso de forma expressa na
-          página e na vitrine.
-        </p>
-        <Campo rotulo="Tipo de inscrição" obrigatorio>
-          <Selecao
-            name="gratuidade"
-            value={gratuidade}
-            onChange={(e) => setGratuidade(e.target.value === "PAGO" ? "PAGO" : "GRATUITO")}
-          >
-            <option value="GRATUITO">Gratuita</option>
-            <option value="PAGO">Paga</option>
-          </Selecao>
-        </Campo>
-
-        {pago ? (
-          <>
-            <Campo
-              rotulo="Valor da inscrição (R$)"
-              dica="Somente informativo: a cobrança acontece fora da plataforma."
-              erro={estado.campos?.valorReais}
-              obrigatorio
-            >
-              <Entrada
-                name="valorReais"
-                inputMode="decimal"
-                value={valorReais}
-                onChange={(e) => setValorReais(e.target.value)}
-                placeholder="0,00"
-                required
-              />
-            </Campo>
-            {valorValido ? (
-              <p className="-mt-2 text-xs text-texto-2">
-                Na página do evento: <span className="font-mono">{formatarValor(valorEmCentavos)}</span>.
-              </p>
-            ) : null}
-            <Campo
-              rotulo="Como pagar"
-              dica="Sem essa informação o participante não tem como concluir o pagamento, já que ele ocorre fora da PlanA."
-              erro={estado.campos?.instrucoesPagamento}
-              obrigatorio
-            >
-              <AreaTexto
-                name="instrucoesPagamento"
-                rows={4}
-                maxLength={2000}
-                defaultValue={evento?.instrucoesPagamento}
-                required
-              />
-            </Campo>
-          </>
-        ) : null}
-      </Cartao>
-
-      <Cartao className="space-y-4">
         <Titulo nivel={3}>Modalidade e local</Titulo>
-        <Campo rotulo="Modalidade" obrigatorio>
+        <Campo rotulo="Modalidade" erro={estado.campos?.modalidade} obrigatorio>
           <Selecao
             name="modalidade"
             value={modalidade}
@@ -357,6 +371,58 @@ export function FormularioEvento({ evento }: { evento?: DadosIniciaisEvento }) {
           >
             <Entrada name="meioTransmissao" defaultValue={evento?.meioTransmissao} />
           </Campo>
+        ) : null}
+      </Cartao>
+
+      <Cartao className="space-y-4">
+        <Titulo nivel={3}>Inscrição</Titulo>
+        <p className="text-xs text-texto-2">
+          Toda inscrição na PlanA é gratuita. A página pública e a agenda dizem isso de forma
+          expressa, com a etiqueta <span className="font-semibold">{ROTULO_GRATUITO}</span> em cada
+          evento, para que o participante saiba de pronto que não vai pagar nada.
+        </p>
+
+        {temVagasPresencial ? (
+          <ControleDeVagas
+            titulo={modalidade === "HIBRIDO" ? "Vagas presenciais" : "Vagas"}
+            explicacao={
+              modalidade === "HIBRIDO"
+                ? "Quantas pessoas cabem na sala. Conta apenas quem se inscrever para assistir presencialmente."
+                : "Quantas pessoas cabem no evento. Ao esgotar, a inscrição fecha automaticamente."
+            }
+            nomeInterruptor="limitarPresencial"
+            nomeCampo="vagasPresencial"
+            limitar={limitarPresencial}
+            aoAlternar={setLimitarPresencial}
+            valor={vagasPresencial}
+            aoDigitar={setVagasPresencial}
+            erro={estado.campos?.vagasPresencial}
+          />
+        ) : null}
+
+        {temVagasOnline ? (
+          <ControleDeVagas
+            titulo={modalidade === "HIBRIDO" ? "Vagas online" : "Vagas"}
+            explicacao={
+              modalidade === "HIBRIDO"
+                ? "Quantas pessoas podem se inscrever para assistir pela transmissão. É contagem própria: esgotar aqui não fecha o presencial, e vice-versa."
+                : "Quantas pessoas podem se inscrever. Transmissão costuma não ter lotação — deixe sem limite e a inscrição nunca fecha."
+            }
+            nomeInterruptor="limitarOnline"
+            nomeCampo="vagasOnline"
+            limitar={limitarOnline}
+            aoAlternar={setLimitarOnline}
+            valor={vagasOnline}
+            aoDigitar={setVagasOnline}
+            erro={estado.campos?.vagasOnline}
+          />
+        ) : null}
+
+        {modalidade === "HIBRIDO" ? (
+          <p className="text-xs text-texto-2">
+            No evento híbrido o participante escolhe, na inscrição, se assiste no local ou pela
+            transmissão. É essa escolha que separa as duas contagens acima.
+          </p>
         ) : null}
       </Cartao>
 

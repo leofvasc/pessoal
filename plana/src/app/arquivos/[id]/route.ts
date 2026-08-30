@@ -11,7 +11,9 @@
  *  - material de apoio é de quem está inscrito naquele evento, e do organizador;
  *  - imagem-base de certificado é só do organizador — o participante recebe o
  *    PDF já montado, nunca o fundo separado. Vale igual para o modelo padrão
- *    da plataforma, que aparece na tela de configurações.
+ *    da plataforma, que aparece na tela de configurações;
+ *  - o gabarito de medidas é de quem organiza: é a documentação de que ele
+ *    precisa para produzir a arte do próprio evento, e sai como download.
  */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -31,6 +33,7 @@ export async function GET(_requisicao: Request, contexto: RouteContext<"/arquivo
       banners: { where: { excluidoEm: null, publicado: true }, select: { id: true }, take: 1 },
       imagensBase: { where: { excluidoEm: null }, select: { organizadorId: true }, take: 1 },
       modelosPadrao: { select: { id: true }, take: 1 },
+      gabaritos: { select: { id: true }, take: 1 },
       materiais: {
         where: { evento: { excluidoEm: null } },
         select: { eventoId: true, evento: { select: { organizadorId: true } } },
@@ -45,15 +48,17 @@ export async function GET(_requisicao: Request, contexto: RouteContext<"/arquivo
   const material = arquivo.materiais[0];
   const imagemBase = arquivo.imagensBase[0];
   const modeloPadrao = arquivo.modelosPadrao.length > 0;
+  const gabarito = arquivo.gabaritos.length > 0;
 
   let liberado = publico;
 
-  if (!liberado && (material || imagemBase || modeloPadrao)) {
+  if (!liberado && (material || imagemBase || modeloPadrao || gabarito)) {
     const sessao = await sessaoAtual();
     if (!sessao) return new NextResponse("Não autenticado", { status: 401 });
 
-    // O modelo padrão é da plataforma, não de um evento: quem organiza vê.
-    if (modeloPadrao) {
+    // O modelo padrão e o gabarito são da plataforma, não de um evento: quem
+    // organiza vê os dois.
+    if (modeloPadrao || gabarito) {
       liberado = temPainel(sessao.papel);
     }
 
@@ -81,9 +86,9 @@ export async function GET(_requisicao: Request, contexto: RouteContext<"/arquivo
   const conteudo = await lerArquivo(arquivo.caminho).catch(() => null);
   if (!conteudo) return new NextResponse("Arquivo indisponível", { status: 404 });
 
-  // `attachment` para material — é para baixar; `inline` para logo e banner,
-  // que a página exibe.
-  const disposicao = material ? "attachment" : "inline";
+  // `attachment` para material e gabarito — são para baixar; `inline` para
+  // logo, banner e imagens de certificado, que as páginas exibem.
+  const disposicao = material || gabarito ? "attachment" : "inline";
   // O nome original volta só no cabeçalho, entre aspas e sem quebras: ele foi
   // digitado por quem enviou, e cabeçalho aceita injeção por CR/LF.
   const nomeSeguro = arquivo.nomeOriginal.replace(/[\r\n"\\]/g, "_");

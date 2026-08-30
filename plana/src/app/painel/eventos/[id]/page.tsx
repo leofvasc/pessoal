@@ -13,7 +13,13 @@ import { LinkPresencaRemota } from "./link-remoto";
 import { garantirTokenRemoto } from "@/app/acoes-evento";
 import { BannerDoEvento, ImagemBaseDoCertificado, MaterialDeApoio, Organizadoras } from "./materiais";
 import { formatarTamanho } from "@/lib/armazenamento";
-import { idDoModeloPadrao } from "@/lib/configuracao";
+import { idDoGabarito, idDoModeloPadrao } from "@/lib/configuracao";
+import { vagasDoEvento } from "@/lib/lotacao";
+import {
+  ROTULO_MODALIDADE_INSCRICAO,
+  exigeEscolhaDeModalidade,
+  rotuloDeVagas,
+} from "@/lib/vagas";
 
 export const metadata = { title: "Evento" };
 
@@ -83,7 +89,10 @@ export default async function PaginaEvento({ params }: PageProps<"/painel/evento
 
   // Saber se a imagem-base em uso é o modelo padrão da plataforma ou arte
   // própria muda o que o gestor lê no cartão e o efeito do botão de remoção.
-  const modeloPadraoId = await idDoModeloPadrao();
+  const [modeloPadraoId, gabaritoId] = await Promise.all([idDoModeloPadrao(), idDoGabarito()]);
+
+  const vagas = await vagasDoEvento(evento.id, evento);
+  const escolheModalidade = exigeEscolhaDeModalidade(evento.modalidade);
 
   return (
     <>
@@ -246,6 +255,7 @@ export default async function PaginaEvento({ params }: PageProps<"/painel/evento
               evento.certificadoBaseArquivoId === modeloPadraoId
             }
             temModeloPadrao={modeloPadraoId !== null}
+            gabaritoArquivoId={gabaritoId}
           />
           <MaterialDeApoio
             eventoId={evento.id}
@@ -278,6 +288,28 @@ export default async function PaginaEvento({ params }: PageProps<"/painel/evento
             Eles não aparecem na lista nominal abaixo, porque os dados pessoais foram apagados.
           </p>
         ) : null}
+        {/* A lotação fica junto da lista de inscritos, e não escondida na
+            edição: é aqui que o organizador olha quando alguém pergunta se
+            ainda dá para se inscrever. */}
+        <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-1">
+          {vagas.map((linha) => (
+            <li key={linha.modalidade} className="text-xs text-texto-2">
+              {escolheModalidade ? (
+                <span className="font-semibold text-tinta">
+                  {ROTULO_MODALIDADE_INSCRICAO[linha.modalidade]}:{" "}
+                </span>
+              ) : (
+                <span className="font-semibold text-tinta">Vagas: </span>
+              )}
+              <span className={linha.esgotado ? "font-semibold text-erro" : undefined}>
+                {linha.limite === null
+                  ? `${linha.ocupadas} inscrito(s), sem limite`
+                  : `${linha.ocupadas} de ${linha.limite} · ${rotuloDeVagas(linha)}`}
+              </span>
+            </li>
+          ))}
+        </ul>
+
         <p className="mt-2 text-xs text-texto-2">
           A presença por QR Code aceita até {TOLERANCIA_METROS} m de diferença do ponto do evento.
           O lançamento manual continua disponível — a precisão do GPS piora em ambiente fechado.
@@ -288,6 +320,9 @@ export default async function PaginaEvento({ params }: PageProps<"/painel/evento
             id: i.id,
             nome: i.usuario.nome,
             email: i.usuario.email,
+            modalidade: escolheModalidade
+              ? ROTULO_MODALIDADE_INSCRICAO[i.modalidade]
+              : null,
             presencaEm: i.presenca?.registradaEm.toISOString() ?? null,
             metodo: i.presenca?.metodo ?? null,
             codigoValidacao: i.certificado?.codigoValidacao ?? null,

@@ -35,11 +35,10 @@ export default async function PaginaEditarEvento({
     latitude: evento.latitude,
     longitude: evento.longitude,
     cargaHorariaMinutos: evento.cargaHorariaMinutos,
-    gratuito: evento.gratuito,
-    // O formulário digita em reais; o banco guarda centavos.
-    valorReais:
-      evento.valorCentavos !== null ? (evento.valorCentavos / 100).toFixed(2).replace(".", ",") : "",
-    instrucoesPagamento: evento.instrucoesPagamento ?? "",
+    // Nulo no banco é "sem limite"; no formulário isso é o campo vazio, com o
+    // interruptor de limitar desmarcado.
+    vagasPresencial: evento.vagasPresencial !== null ? String(evento.vagasPresencial) : "",
+    vagasOnline: evento.vagasOnline !== null ? String(evento.vagasOnline) : "",
     tutorVirtualUrl: evento.tutorVirtualUrl ?? "",
     palestrantes: evento.palestrantes.map(({ nome, qualificacao }) => ({
       nome,
@@ -55,6 +54,8 @@ export default async function PaginaEditarEvento({
       <Titulo className="mt-4">Editar evento</Titulo>
       <p className="mt-2 text-sm text-texto-2">
         Altere os dados principais. O código, os links e os QR Codes existentes permanecem os mesmos.
+        Reduzir o número de vagas abaixo do que já foi ocupado não cancela inscrição de ninguém:
+        a inscrição apenas para de aceitar gente nova.
       </p>
       <FormularioEvento evento={dados} />
     </>

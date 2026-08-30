@@ -45,6 +45,17 @@ export const CATEGORIAS = {
     tipos: ["image/png", "image/jpeg"],
     rotulo: "imagem PNG ou JPG de até 10 MB",
   },
+  /**
+   * Gabarito de medidas do certificado, mantido pela administração e baixado
+   * pelo organizador. Aceita PDF além de imagem: gabarito de medida costuma
+   * ser mais útil em PDF, que abre em escala real em qualquer editor.
+   */
+  gabarito: {
+    pasta: "gabaritos",
+    limiteBytes: 10 * MB,
+    tipos: ["image/png", "image/jpeg", "application/pdf"],
+    rotulo: "PNG, JPG ou PDF de até 10 MB",
+  },
   /** Logotipo de instituição organizadora. */
   logo: {
     pasta: "logos",

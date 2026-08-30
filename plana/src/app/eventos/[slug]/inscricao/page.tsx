@@ -7,6 +7,8 @@ import { Etiqueta, Titulo } from "@/components/ui";
 import { Logotipo } from "@/components/marca/Logotipo";
 import { dataLongaAcre, formatarCargaHoraria } from "@/lib/fuso";
 import { FormularioDeInscricao } from "./formulario";
+import { vagasDoEvento } from "@/lib/lotacao";
+import { exigeEscolhaDeModalidade, totalmenteEsgotado } from "@/lib/vagas";
 
 export const metadata = { title: "Inscrição" };
 
@@ -35,6 +37,8 @@ export default async function PaginaInscricao({
       modalidade: true,
       canceladoEm: true,
       fimEm: true,
+      vagasPresencial: true,
+      vagasOnline: true,
       instituicoes: {
         orderBy: { ordem: "asc" },
         select: { instituicao: { select: { nome: true } } },
@@ -53,11 +57,23 @@ export default async function PaginaInscricao({
 
   const inscricao = await prisma.inscricao.findUnique({
     where: { eventoId_usuarioId: { eventoId: evento.id, usuarioId: sessao.usuarioId } },
-    select: { canceladaEm: true, respostas: { select: { campoId: true, valor: true } } },
+    select: {
+      canceladaEm: true,
+      modalidade: true,
+      respostas: { select: { campoId: true, valor: true } },
+    },
   });
   const respostasAtuais = Object.fromEntries(
     (inscricao?.respostas ?? []).map((r) => [r.campoId, r.valor]),
   );
+
+  const vagas = await vagasDoEvento(evento.id, evento);
+  const jaInscrito = inscricao != null && inscricao.canceladaEm == null;
+
+  // Quem já está inscrito continua entrando para atualizar as respostas mesmo
+  // com o evento lotado: a vaga dele já está reservada, e fechar a porta aqui
+  // impediria a correção de um dado que a organização precisa ter certo.
+  if (!jaInscrito && totalmenteEsgotado(vagas)) redirect(`/eventos/${slug}`);
 
   return (
     <>
@@ -91,7 +107,10 @@ export default async function PaginaInscricao({
           eventoId={evento.id}
           campos={campos}
           respostas={respostasAtuais}
-          jaInscrito={inscricao != null && inscricao.canceladaEm == null}
+          jaInscrito={jaInscrito}
+          vagas={vagas}
+          escolheModalidade={exigeEscolhaDeModalidade(evento.modalidade)}
+          modalidadeAtual={inscricao?.modalidade ?? null}
         />
       </main>
     </>

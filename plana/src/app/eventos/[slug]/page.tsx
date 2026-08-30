@@ -8,9 +8,21 @@ import { Aviso, BotaoLink, Cartao, Etiqueta, Titulo } from "@/components/ui";
 import { Logotipo } from "@/components/marca/Logotipo";
 import { dataLongaAcre, etiquetaDoisFusos, formatarCargaHoraria } from "@/lib/fuso";
 import { formatarTamanho } from "@/lib/armazenamento";
-import { formatarValor, rotuloDeGratuidade } from "@/lib/inscricao-valor";
+import { ROTULO_GRATUITO } from "@/lib/inscricao-valor";
+import { COMO_REGISTRAR_PRESENCA } from "@/lib/confirmacao-inscricao";
 import { BotaoInscricao } from "./botao-inscricao";
+import { SalvarNaAgenda } from "@/components/SalvarNaAgenda";
 import { eventoTemCampos } from "@/lib/campos-inscricao";
+import { vagasDoEvento } from "@/lib/lotacao";
+import {
+  ROTULO_MODALIDADE_INSCRICAO,
+  exigeEscolhaDeModalidade,
+  rotuloDeVagas,
+  totalmenteEsgotado,
+} from "@/lib/vagas";
+import { localParaAgenda } from "@/lib/agenda-evento";
+import { urlGoogleAgenda } from "@/lib/agenda";
+import { origemPublica } from "@/lib/origem";
 
 const MODALIDADES = { PRESENCIAL: "Presencial", ONLINE: "Online", HIBRIDO: "Híbrido" } as const;
 
@@ -76,13 +88,35 @@ export default async function PaginaPublicaEvento({ params }: PageProps<"/evento
   const inscricao = sessao
     ? await prisma.inscricao.findUnique({
         where: { eventoId_usuarioId: { eventoId: evento.id, usuarioId: sessao.usuarioId } },
-        select: { canceladaEm: true },
+        select: { canceladaEm: true, modalidade: true },
       })
     : null;
 
   const inscrito = Boolean(inscricao && !inscricao.canceladaEm);
   const temCampos = await eventoTemCampos(evento.id);
   const encerrado = await jaEncerrado(evento.fimEm);
+  const vagas = await vagasDoEvento(evento.id, evento);
+  const esgotado = totalmenteEsgotado(vagas);
+  const escolheModalidade = exigeEscolhaDeModalidade(evento.modalidade);
+
+  // Salvar na agenda é comodidade de quem já se inscreveu, e por isso os
+  // endereços só são montados nesse caso. Nada disso guarda dado: o Google
+  // recebe o compromisso pela própria URL clicada, e o .ics é gerado na hora.
+  const origem = inscrito && !evento.canceladoEm ? await origemPublica() : null;
+  const agenda = origem
+    ? {
+        google: urlGoogleAgenda({
+          nome: evento.nome,
+          descricao: evento.descricao,
+          inicioEm: evento.inicioEm,
+          fimEm: evento.fimEm,
+          local: localParaAgenda(evento),
+          url: `${origem}/eventos/${evento.slug}`,
+          codigoEvento: evento.codigoEvento,
+        }),
+        ics: `/eventos/${evento.slug}/agenda.ics`,
+      }
+    : null;
 
   return (
     <>
@@ -120,16 +154,15 @@ export default async function PaginaPublicaEvento({ params }: PageProps<"/evento
             {MODALIDADES[evento.modalidade]} · {formatarCargaHoraria(evento.cargaHorariaMinutos)}
           </Etiqueta>
           {/* Dito de forma expressa, e não por omissão: quem chega na página
-              precisa saber se paga antes de decidir se se inscreve. */}
-          <span
-            className={
-              evento.gratuito
-                ? "rounded-full bg-sucesso/10 px-3 py-1 text-xs font-bold text-sucesso"
-                : "rounded-full bg-lilas px-3 py-1 text-xs font-bold text-profundo"
-            }
-          >
-            {rotuloDeGratuidade(evento.gratuito, evento.valorCentavos)}
+              precisa saber que não paga antes de decidir se se inscreve. */}
+          <span className="rounded-full bg-sucesso/10 px-3 py-1 text-xs font-bold text-sucesso">
+            {ROTULO_GRATUITO}
           </span>
+          {esgotado ? (
+            <span className="rounded-full bg-erro/10 px-3 py-1 text-xs font-bold text-erro">
+              Vagas esgotadas
+            </span>
+          ) : null}
         </div>
         <Titulo className="mt-3 quebra-texto">{evento.nome}</Titulo>
 
@@ -181,23 +214,32 @@ export default async function PaginaPublicaEvento({ params }: PageProps<"/evento
             </Cartao>
           ) : null}
 
-          {!evento.gratuito ? (
-            <Cartao>
-              <Etiqueta>inscrição</Etiqueta>
-              <p className="mt-2 text-sm font-semibold">
-                {evento.valorCentavos !== null ? formatarValor(evento.valorCentavos) : "Evento pago"}
-              </p>
-              {evento.instrucoesPagamento ? (
-                <p className="quebra-texto mt-2 whitespace-pre-line text-sm text-texto-2">
-                  {evento.instrucoesPagamento}
-                </p>
-              ) : null}
+          {/* Vagas ditas antes da inscrição: descobrir que o evento lotou
+              depois de preencher o formulário é a pior hora de descobrir. */}
+          <Cartao>
+            <Etiqueta>inscrição</Etiqueta>
+            <p className="mt-2 text-sm font-semibold text-sucesso">{ROTULO_GRATUITO}</p>
+            <ul className="mt-3 space-y-1">
+              {vagas.map((linha) => (
+                <li key={linha.modalidade} className="text-sm text-texto-2">
+                  {escolheModalidade ? (
+                    <span className="font-semibold text-tinta">
+                      {ROTULO_MODALIDADE_INSCRICAO[linha.modalidade]}:{" "}
+                    </span>
+                  ) : null}
+                  <span className={linha.esgotado ? "font-semibold text-erro" : undefined}>
+                    {rotuloDeVagas(linha)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {escolheModalidade ? (
               <p className="mt-3 text-xs text-texto-2">
-                O pagamento acontece fora da PlanA, diretamente com a organização. A plataforma não
-                recebe valores nem confirma pagamento.
+                Evento híbrido: você escolhe, na inscrição, se assiste no local ou pela
+                transmissão. Cada modalidade tem suas próprias vagas.
               </p>
-            </Cartao>
-          ) : null}
+            ) : null}
+          </Cartao>
 
           {evento.palestrantes.map((palestrante) => (
             <Cartao key={palestrante.id}>
@@ -255,12 +297,38 @@ export default async function PaginaPublicaEvento({ params }: PageProps<"/evento
           ) : encerrado ? (
             <Aviso>Este evento já foi encerrado.</Aviso>
           ) : inscrito ? (
-            <Aviso tom="sucesso" titulo="Inscrição confirmada">
-              No dia do evento, abra a PlanA e leia o QR Code projetado na sala para registrar
-              presença. O certificado é liberado automaticamente depois disso.
+            <>
+              <Aviso tom="sucesso" titulo="Inscrição confirmada">
+                {inscricao?.modalidade === "ONLINE"
+                  ? COMO_REGISTRAR_PRESENCA.ONLINE
+                  : COMO_REGISTRAR_PRESENCA.PRESENCIAL}{" "}
+                O certificado é liberado automaticamente depois disso.
+                {escolheModalidade && inscricao ? (
+                  <>
+                    {" "}
+                    Sua inscrição é na modalidade{" "}
+                    <strong>
+                      {ROTULO_MODALIDADE_INSCRICAO[inscricao.modalidade].toLocaleLowerCase("pt-BR")}
+                    </strong>
+                    .
+                  </>
+                ) : null}
+              </Aviso>
+              {agenda ? <SalvarNaAgenda urlGoogle={agenda.google} urlIcs={agenda.ics} /> : null}
+            </>
+          ) : esgotado ? (
+            <Aviso tom="erro" titulo="Vagas esgotadas">
+              Todas as vagas deste evento foram preenchidas. A organização pode ampliar o limite;
+              acompanhe esta página.
             </Aviso>
           ) : sessao ? (
-            <BotaoInscricao eventoId={evento.id} slug={evento.slug} temCampos={temCampos} />
+            <BotaoInscricao
+              eventoId={evento.id}
+              slug={evento.slug}
+              temCampos={temCampos}
+              vagas={vagas}
+              escolheModalidade={escolheModalidade}
+            />
           ) : (
             <Cartao>
               <p className="text-sm text-texto-2">

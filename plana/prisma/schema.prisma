@@ -150,6 +150,18 @@ enum Modalidade {
   HIBRIDO
 }
 
+/// Como o participante assiste ao evento.
+///
+/// Em evento presencial e em evento online não há escolha: a modalidade da
+/// inscrição é a do evento. Em evento híbrido, quem se inscreve decide, e é
+/// essa decisão que permite limitar separadamente a lotação da sala e a
+/// capacidade da transmissão — que são coisas diferentes e se esgotam em
+/// ritmos diferentes.
+enum ModalidadeInscricao {
+  PRESENCIAL
+  ONLINE
+}
+
 /// Seção 3: instituições organizadoras são entidade própria, em relação de
 /// muitos para muitos com os eventos — o que permite exibi-las no certificado
 /// e usá-las como filtro em relatórios.
@@ -296,16 +308,16 @@ model Evento {
 
   cargaHorariaMinutos Int
 
-  /// Gratuidade da inscrição. A plataforma não processa pagamento — o campo
-  /// existe para informar o participante antes da inscrição, e para que o
-  /// evento gratuito diga isso de forma explícita na página e na vitrine.
-  gratuito Boolean @default(true)
-
-  /// Preenchidos apenas quando `gratuito` é falso. O valor fica em centavos
-  /// para não depender de arredondamento de ponto flutuante; as instruções
-  /// dizem ao participante como pagar fora da plataforma.
-  valorCentavos       Int?
-  instrucoesPagamento String? @db.Text
+  /// Limite de inscrições na modalidade presencial. `null` significa sem
+  /// limite — a inscrição nunca fecha por lotação.
+  ///
+  /// São duas colunas, e não uma, porque a sala e a transmissão se esgotam
+  /// por motivos distintos: a primeira tem cadeiras, a segunda tem licença de
+  /// sala virtual ou nada disso. Em evento híbrido as duas valem ao mesmo
+  /// tempo, cada uma contando apenas as inscrições da sua modalidade; em
+  /// evento presencial só a primeira é usada, e em evento online só a segunda.
+  vagasPresencial Int?
+  vagasOnline     Int?
 
   /// Divulgação (seção 7): link longo e link curto.
   slug        String @unique
@@ -364,10 +376,10 @@ model Evento {
 /// Configuração global da plataforma. Linha única, de id fixo "global": o que
 /// vale para todos os eventos mora aqui, e não repetido em cada evento.
 ///
-/// Hoje guarda apenas o modelo-base padrão de certificado. A PlanA mantém um
-/// modelo próprio, aplicado automaticamente a todo evento novo; o organizador
-/// pode substituí-lo por arte própria dentro do evento, sem que isso altere o
-/// padrão dos demais.
+/// Guarda o modelo-base padrão de certificado e o gabarito de medidas. A PlanA
+/// mantém um modelo próprio, aplicado automaticamente a todo evento novo; o
+/// organizador pode substituí-lo por arte própria dentro do evento, sem que
+/// isso altere o padrão dos demais.
 model Configuracao {
   id String @id @default("global")
 
@@ -377,10 +389,23 @@ model Configuracao {
   certificadoBasePadraoArquivoId String?
   certificadoBasePadraoArquivo   Arquivo? @relation("ModeloPadraoDeCertificado", fields: [certificadoBasePadraoArquivoId], references: [id])
 
+  /// Gabarito de medidas do certificado, baixado pelo organizador antes de
+  /// produzir a própria arte.
+  ///
+  /// A automação escreve o nome do participante, os dados do evento e o bloco
+  /// de validação sempre nas mesmas posições. Sem saber onde ficam essas
+  /// áreas, o organizador desenha por cima delas e descobre o problema só
+  /// quando o primeiro certificado sai ilegível. O gabarito é a resposta a
+  /// isso, e fica aqui — e não embutido no código — para que a administração
+  /// possa atualizá-lo sozinha sempre que o desenho do certificado mudar.
+  gabaritoCertificadoArquivoId String?
+  gabaritoCertificadoArquivo   Arquivo? @relation("GabaritoDeCertificado", fields: [gabaritoCertificadoArquivoId], references: [id])
+
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
   @@index([certificadoBasePadraoArquivoId])
+  @@index([gabaritoCertificadoArquivoId])
 }
 
 /// Seção 3: pode haver mais de um por evento. O campo vem preenchido por
@@ -433,6 +458,7 @@ model Arquivo {
   logosDeInstituicoes Instituicao[]   @relation("LogoDaInstituicao")
   imagensBase         Evento[]        @relation("ImagemBaseDoCertificado")
   modelosPadrao       Configuracao[]  @relation("ModeloPadraoDeCertificado")
+  gabaritos           Configuracao[]  @relation("GabaritoDeCertificado")
   banners             Evento[]        @relation("BannerDoEvento")
   materiais           MaterialApoio[] @relation("MaterialDeApoio")
 
@@ -462,6 +488,11 @@ enum TipoCampoInscricao {
 /// Existe porque cada instituição pergunta algo diferente — o período que o
 /// aluno cursa, a lotação da servidora, a necessidade de acessibilidade — e
 /// engessar esses campos no schema obrigaria a alterar o banco a cada evento.
+///
+/// É um por evento, e o limite é a decisão de produto, não um provisório:
+/// personalização e coleta mínima puxam para lados opostos, e um campo é o
+/// ponto em que o organizador consegue perguntar o que só ele sabe que
+/// precisa, sem que o formulário vire cadastro.
 ///
 /// Campo não se apaga: arquiva-se. A resposta já dada por quem se inscreveu
 /// integra o registro daquela inscrição, e sumir com a pergunta deixaria a
@@ -527,6 +558,12 @@ model Inscricao {
   usuarioId String
   usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
+  /// Presencial ou online. Em evento presencial e em evento online é a própria
+  /// modalidade do evento, gravada aqui mesmo assim: é o que permite contar
+  /// vagas com uma consulta só, sem tratar o híbrido como exceção em cada
+  /// lugar que precisa do número.
+  modalidade ModalidadeInscricao @default(PRESENCIAL)
+
   criadaEm    DateTime  @default(now())
   canceladaEm DateTime?
 
@@ -536,6 +573,9 @@ model Inscricao {
 
   @@unique([eventoId, usuarioId])
   @@index([usuarioId])
+  /// Índice da contagem de vagas: as consultas de lotação filtram por evento,
+  /// modalidade e inscrição não cancelada.
+  @@index([eventoId, modalidade, canceladaEm])
 }
 
 enum MetodoPresenca {

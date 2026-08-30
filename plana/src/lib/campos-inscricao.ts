@@ -9,10 +9,12 @@ import "server-only";
  * organizador dependeria do desenvolvedor para uma pergunta de uma linha.
  *
  * O preço dessa liberdade é que a plataforma deixa de saber, de antemão, que
- * dados coleta. Isso tem consequência jurídica direta: a PlanA é controladora,
- * e responde por coleta excessiva feita por um campo que ela não escreveu. Daí
- * três travas que não são enfeite —
+ * dados coleta. Daí as travas, que não são enfeite —
  *
+ *  - **um campo por evento**, e só um. É o ponto de equilíbrio entre a
+ *    necessidade de personalização e o princípio da coleta mínima: com um, o
+ *    organizador pergunta o que só ele sabe que precisa; com vinte, o
+ *    formulário vira cadastro e ninguém mais sabe por quê;
  *  - o campo de ajuda é o lugar onde o organizador declara a finalidade, e o
  *    participante o lê antes de responder;
  *  - a tela de configuração adverte sobre dado sensível do art. 11 da LGPD e
@@ -51,8 +53,13 @@ export function exigeOpcoes(tipo: TipoCampoInscricao): boolean {
   return tipo === "SELECAO_UNICA" || tipo === "SELECAO_MULTIPLA";
 }
 
-export const LIMITE_DE_CAMPOS = 20;
-export const LIMITE_DE_OPCOES = 30;
+// Os limites moram em módulo isomórfico próprio: a tela do organizador roda no
+// navegador e precisa do mesmo número e da mesma frase que a validação usa.
+export {
+  AVISO_LIMITE_DE_CAMPOS,
+  LIMITE_DE_CAMPOS,
+  LIMITE_DE_OPCOES,
+} from "./limites-inscricao";
 
 export type CampoParaFormulario = {
   id: string;

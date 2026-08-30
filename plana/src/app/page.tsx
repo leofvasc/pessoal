@@ -7,7 +7,8 @@ import { Simbolo } from "@/components/marca/Simbolo";
 import { LoopCheckin } from "@/components/marca/LoopCheckin";
 import { BotaoLink, Cartao, Etiqueta, Titulo } from "@/components/ui";
 import { VitrineEventos, type EventoDaVitrine } from "@/components/VitrineEventos";
-import { rotuloDeGratuidade } from "@/lib/inscricao-valor";
+import { ROTULO_GRATUITO } from "@/lib/inscricao-valor";
+import { situacaoDeVagas, totalmenteEsgotado } from "@/lib/vagas";
 
 const MODALIDADES = { PRESENCIAL: "Presencial", ONLINE: "Online", HIBRIDO: "Híbrido" } as const;
 
@@ -51,8 +52,8 @@ export default async function PaginaInicial() {
         meioTransmissao: true,
         bannerArquivoId: true,
         canceladoEm: true,
-        gratuito: true,
-        valorCentavos: true,
+        vagasPresencial: true,
+        vagasOnline: true,
         palestrantes: { orderBy: { ordem: "asc" }, select: { nome: true } },
         instituicoes: {
           orderBy: { ordem: "asc" },
@@ -62,6 +63,40 @@ export default async function PaginaInicial() {
     }),
     sessaoAtual(),
   ]);
+
+  // Uma consulta agregada para toda a vitrine, e não uma por evento: a página
+  // é pública e a lista cresce, e vinte consultas de contagem por visita é o
+  // tipo de coisa que só aparece quando já está lenta.
+  const inscricoesPorEvento = await prisma.inscricao.groupBy({
+    by: ["eventoId", "modalidade"],
+    where: { canceladaEm: null, evento: { publicado: true, excluidoEm: null } },
+    _count: { _all: true },
+  });
+
+  const ocupadas = new Map<string, { presencial: number; online: number }>();
+  for (const linha of inscricoesPorEvento) {
+    const atual = ocupadas.get(linha.eventoId) ?? { presencial: 0, online: 0 };
+    if (linha.modalidade === "ONLINE") atual.online += linha._count._all;
+    else atual.presencial += linha._count._all;
+    ocupadas.set(linha.eventoId, atual);
+  }
+
+  const esgotados = new Set(
+    eventos
+      .filter((evento) => {
+        const contagem = ocupadas.get(evento.id) ?? { presencial: 0, online: 0 };
+        return totalmenteEsgotado(
+          situacaoDeVagas({
+            modalidade: evento.modalidade,
+            vagasPresencial: evento.vagasPresencial,
+            vagasOnline: evento.vagasOnline,
+            ocupadasPresencial: contagem.presencial,
+            ocupadasOnline: contagem.online,
+          }),
+        );
+      })
+      .map((evento) => evento.id),
+  );
 
   eventos.sort((a, b) => {
     const aAberto = !a.canceladoEm && a.fimEm >= agora;
@@ -84,13 +119,18 @@ export default async function PaginaInicial() {
     bannerArquivoId: evento.bannerArquivoId,
     organizadoras: evento.instituicoes.map(({ instituicao }) => instituicao.nome),
     palestrantes: evento.palestrantes.map(({ nome }) => nome),
-    inscricao: rotuloDeGratuidade(evento.gratuito, evento.valorCentavos),
-    gratuito: evento.gratuito,
+    inscricao: ROTULO_GRATUITO,
+    esgotado: esgotados.has(evento.id),
     estado: evento.canceladoEm ? "CANCELADO" : evento.fimEm < agora ? "ENCERRADO" : "ABERTO",
   }));
 
-  const abertos = vitrine.filter((evento) => evento.estado === "ABERTO").length;
-  const encerrados = vitrine.length - abertos;
+  // O número bate com o filtro "inscrições abertas": evento lotado não tem
+  // inscrição aberta, e contá-lo aqui faria a estatística prometer vaga que
+  // não existe.
+  const abertos = vitrine.filter(
+    (evento) => evento.estado === "ABERTO" && !evento.esgotado,
+  ).length;
+  const encerrados = vitrine.filter((evento) => evento.estado !== "ABERTO").length;
 
   return (
     <>

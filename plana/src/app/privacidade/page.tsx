@@ -127,6 +127,14 @@ export default function PaginaPrivacidade() {
             <li>Não vendemos nem cedemos seus dados. Operadores recebem apenas o mínimo necessário para serviços como a entrega do e-mail de redefinição de senha.</li>
             <li>Não usamos seus dados para publicidade.</li>
             <li>Não guardamos o PDF do certificado — ele é montado a cada download.</li>
+            <li>
+              Não acessamos nem guardamos sua agenda. O botão de salvar o evento no calendário
+              apenas monta um compromisso com informação que já é pública na página do evento: ou
+              abre o Google com os campos preenchidos, ou entrega um arquivo de calendário ao seu
+              aparelho. Não pedimos autorização de acesso, não guardamos token de calendário e não
+              registramos que você salvou o evento.
+            </li>
+            <li>Não cobramos inscrição. A plataforma não processa pagamento e não guarda dado financeiro seu.</li>
           </ul>
         </section>
 
