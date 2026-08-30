@@ -1,0 +1,793 @@
+// Modelo de dados da PlanA.
+// Referência: "Planejamento da Plataforma PlanA", seções 3 a 9.
+//
+// Diretriz de coleta mínima (seção 9): cada campo aqui corresponde a uma
+// finalidade declarada. Campos sem finalidade não entram no schema.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Pessoas
+// ---------------------------------------------------------------------------
+
+/// Seção 4: perfis reconhecidos no momento do cadastro.
+enum Perfil {
+  ACADEMICO
+  PROFISSIONAL_JURIDICO
+  PROFISSIONAL_NAO_JURIDICO
+  PROFESSOR
+  OUTROS
+}
+
+enum Papel {
+  PARTICIPANTE
+
+  /// Gere os próprios eventos: cria, publica, lança presença, emite relatório.
+  /// Nunca enxerga evento alheio.
+  ORGANIZADOR
+
+  /// Administra a plataforma. Faz tudo que o organizador faz nos próprios
+  /// eventos e, além disso, cria e gere contas de organizador e emite
+  /// relatório sobre toda a base. É papel de dono da plataforma, não de
+  /// cliente dela: só existe por criação no servidor ou por promoção feita
+  /// por outro master.
+  MASTER
+}
+
+/// Natureza jurídica de quem organiza. Determina qual documento se pede e
+/// como o organizador é identificado na plataforma.
+enum TipoOrganizador {
+  PESSOA_FISICA
+  PESSOA_JURIDICA
+  ORGAO_PUBLICO
+}
+
+model Usuario {
+  id        String @id @default(cuid())
+  nome      String
+  email     String @unique
+  senhaHash String
+  papel     Papel  @default(PARTICIPANTE)
+
+  /// Código pessoal do participante, no formato USR-XXXX-XXXX.
+  /// É o que ele digita para registrar presença à distância em evento online
+  /// ou híbrido, quando não há QR Code projetado para ler. Fica visível na
+  /// área da conta como "Seu código de usuário".
+  ///
+  /// Pode ser trocado pelo próprio titular quando ele suspeitar de vazamento.
+  /// Como o código vive só aqui — presenças e certificados ligam pelo id da
+  /// conta —, a troca vale imediatamente em toda a plataforma, e nada do que
+  /// já foi registrado se perde.
+  codigoUsuario          String    @unique
+  codigoUsuarioTrocadoEm DateTime?
+
+  perfil Perfil
+
+  /// Complemento livre do perfil. Guarda a atividade ou instituição do
+  /// profissional jurídico, a área do não jurídico e a descrição de "outros".
+  /// Um único campo porque os três são mutuamente exclusivos.
+  perfilDetalhe String?
+
+  /// Seção 5: telefone e e-mail existem para comunicações urgentes por e-mail
+  /// ou WhatsApp, como canal complementar à central de notificações. A coleta
+  /// depende de consentimento específico (ver Consentimento).
+  telefone String?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  /// Guarda de segurança, não exclusão. A exclusão pedida pelo titular apaga a
+  /// linha de verdade (ver `src/lib/exclusao-de-conta.ts`); esta coluna existe
+  /// para que qualquer bloqueio administrativo futuro tenha onde ser marcado e
+  /// para que login, recuperação de senha e check-in já o respeitem.
+  excluidoEm DateTime?
+
+  /// Suspensão administrativa pelo master. Bloqueia o login sem apagar nada:
+  /// é medida de contenção, e a conta suspensa continua existindo com todo o
+  /// seu histórico. Distinta de `excluidoEm`, que é guarda para exclusão.
+  suspensoEm      DateTime?
+  motivoSuspensao String?
+
+  /// Data da última troca de senha. Sessões emitidas antes deste instante são
+  /// consideradas inválidas — permite revogar tokens JWT em circulação quando
+  /// a senha é alterada, mesmo que o JWT ainda não tenha expirado.
+  senhaAlteradaEm DateTime?
+
+  consentimentos      Consentimento[]
+  inscricoes          Inscricao[]
+  eventosOrganizados  Evento[]            @relation("EventosDoOrganizador")
+  notificacoes        Notificacao[]
+  assinaturasPush     AssinaturaPush[]
+  chamados            Chamado[]
+  presencasLancadas   Presenca[]          @relation("PresencaLancadaPor")
+  arquivosEnviados    Arquivo[]           @relation("ArquivosEnviados")
+  redefinicoesSenha   RedefinicaoSenha[]
+  instituicoesGeridas InstituicaoGestor[]
+
+  @@index([papel])
+}
+
+/// Seção 9: consentimento informado e destacado *por finalidade*.
+/// Cada finalidade é uma linha própria, com data de concessão e de revogação —
+/// é o registro que comprova a base legal de cada tratamento.
+enum FinalidadeConsentimento {
+  COMUNICACAO_URGENTE_EMAIL
+  COMUNICACAO_URGENTE_WHATSAPP
+  GEOLOCALIZACAO_CHECKIN
+}
+
+model Consentimento {
+  id         String                  @id @default(cuid())
+  usuarioId  String
+  usuario    Usuario                 @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  finalidade FinalidadeConsentimento
+
+  concedidoEm DateTime  @default(now())
+  revogadoEm  DateTime?
+
+  /// Texto exato apresentado ao titular no momento do aceite, para prova.
+  textoApresentado String
+
+  @@unique([usuarioId, finalidade])
+  @@index([usuarioId])
+}
+
+// ---------------------------------------------------------------------------
+// Eventos
+// ---------------------------------------------------------------------------
+
+/// Seção 2: presencial, online e híbrido.
+enum Modalidade {
+  PRESENCIAL
+  ONLINE
+  HIBRIDO
+}
+
+/// Seção 3: instituições organizadoras são entidade própria, em relação de
+/// muitos para muitos com os eventos — o que permite exibi-las no certificado
+/// e usá-las como filtro em relatórios.
+/// A entidade que organiza eventos na PlanA.
+///
+/// Este modelo passou a acumular dois papéis que antes estavam separados. Ele
+/// continua sendo a linha de crédito impressa no certificado — nome e logotipo
+/// —, e passou a ser também a identificação de quem responde pelo evento
+/// perante a plataforma e perante o participante.
+///
+/// A fusão veio de uma decisão de produto: a plataforma serve a um círculo
+/// definido de instituições, e não ao público aberto. Ninguém se torna
+/// organizador por conta própria. O master cadastra a instituição aqui e
+/// vincula a ela uma conta já existente, que passa a geri-la. É esse vínculo,
+/// e não uma marcação na conta, que cria um organizador.
+///
+/// A consequência é que o certificado nunca sai em nome de alguém que a
+/// plataforma não tenha conferido antes — o que é o próprio valor do
+/// documento, já que a página pública de validação o declara autêntico.
+model Instituicao {
+  id   String @id @default(cuid())
+  nome String
+
+  /// Logotipo enviado pelo gestor. Aparece na página do evento e no
+  /// certificado, ao lado do nome da instituição.
+  logoArquivoId String?
+  logoArquivo   Arquivo? @relation("LogoDaInstituicao", fields: [logoArquivoId], references: [id])
+
+  /// Natureza jurídica. Muda qual documento se pede e como a instituição é
+  /// descrita nas telas e nos relatórios.
+  tipo TipoOrganizador @default(PESSOA_JURIDICA)
+
+  /// Nome curto para listagens e filtros, quando a denominação oficial for
+  /// longa demais para caber. O certificado sempre usa o nome completo.
+  nomeCurto String?
+
+  /// CPF da pessoa física, CNPJ da pessoa jurídica ou do órgão, só dígitos.
+  /// Opcional por minimização: nenhuma funcionalidade o utiliza. Existe porque
+  /// instituição que contrata, credencia ou audita evento costuma precisar
+  /// identificar o responsável.
+  documento String?
+
+  /// Contato institucional publicado na página do evento, distinto do e-mail
+  /// de login de quem administra. Existe para que o participante fale com a
+  /// organização sem receber o endereço pessoal de um servidor.
+  emailContato    String?
+  telefoneContato String?
+  site            String?
+
+  /// Órgão público: esfera e unidade.
+  esfera String?
+
+  /// Anotação interna do master. Não aparece ao gestor nem ao participante.
+  anotacaoInterna String? @db.Text
+
+  /// Suspensão administrativa. Suspensa, a instituição não recebe eventos
+  /// novos, e seus gestores continuam vendo o histórico e emitindo relatório.
+  suspensaEm      DateTime?
+  motivoSuspensao String?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  eventos  EventoInstituicao[]
+  gestores InstituicaoGestor[]
+
+  @@index([logoArquivoId])
+  @@index([tipo])
+}
+
+/// Vínculo entre uma conta e a instituição que ela gere.
+///
+/// É este registro que transforma um participante em organizador. Ele é criado
+/// somente pelo master, e some quando o master o desfaz — momento em que a
+/// conta volta a ser apenas de participante, sem perder inscrições,
+/// presenças ou certificados que tenha como participante de eventos alheios.
+///
+/// Muitos para muitos de propósito: uma instituição grande costuma ter mais de
+/// uma pessoa lançando presença, e uma mesma pessoa pode responder por um
+/// centro de estudos e por uma escola superior ao mesmo tempo.
+model InstituicaoGestor {
+  instituicaoId String
+  instituicao   Instituicao @relation(fields: [instituicaoId], references: [id], onDelete: Cascade)
+  usuarioId     String
+  usuario       Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  /// Quem criou o vínculo e quando. Fica para que se saiba, depois, quem
+  /// autorizou aquela conta a emitir certificado em nome da instituição.
+  vinculadoEm  DateTime @default(now())
+  vinculadoPor String?
+
+  @@id([instituicaoId, usuarioId])
+  @@index([usuarioId])
+}
+
+model EventoInstituicao {
+  eventoId      String
+  evento        Evento      @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  instituicaoId String
+  instituicao   Instituicao @relation(fields: [instituicaoId], references: [id], onDelete: Cascade)
+
+  /// Ordem de exibição na assinatura de rodapé da peça e no certificado.
+  ordem Int @default(0)
+
+  @@id([eventoId, instituicaoId])
+}
+
+model Evento {
+  id        String @id @default(cuid())
+  nome      String
+  descricao String @db.Text
+
+  /// Instantes sempre em UTC. A exibição converte para o fuso do Acre
+  /// (referência principal) e para o de Brasília, sem conversão manual.
+  inicioEm DateTime
+  fimEm    DateTime
+
+  modalidade Modalidade
+
+  /// Local e transmissão, conforme a modalidade.
+  localNome       String?
+  localEndereco   String?
+  meioTransmissao String?
+
+  /// Seção 3: coordenada definida manualmente pelo organizador com um pino no
+  /// mapa — não há geocodificação automática a partir do endereço. É a
+  /// referência da validação de presença da seção 8.
+  latitude  Float?
+  longitude Float?
+
+  /// Banner de divulgação do evento.
+  bannerArquivoId String?
+  bannerArquivo   Arquivo? @relation("BannerDoEvento", fields: [bannerArquivoId], references: [id])
+
+  /// Imagem-base A4 paisagem sobre a qual o certificado é gerado, apenas
+  /// frente. Enviada pelo gestor no cadastro do evento; pertence às
+  /// organizadoras, e a PlanA não a redesenha.
+  certificadoBaseArquivoId String?
+  certificadoBaseArquivo   Arquivo? @relation("ImagemBaseDoCertificado", fields: [certificadoBaseArquivoId], references: [id])
+
+  /// Seção 3: link opcional de tutor virtual. Quando nulo, o campo é omitido
+  /// da visualização dos participantes.
+  tutorVirtualUrl String?
+
+  cargaHorariaMinutos Int
+
+  /// Gratuidade da inscrição. A plataforma não processa pagamento — o campo
+  /// existe para informar o participante antes da inscrição, e para que o
+  /// evento gratuito diga isso de forma explícita na página e na vitrine.
+  gratuito Boolean @default(true)
+
+  /// Preenchidos apenas quando `gratuito` é falso. O valor fica em centavos
+  /// para não depender de arredondamento de ponto flutuante; as instruções
+  /// dizem ao participante como pagar fora da plataforma.
+  valorCentavos       Int?
+  instrucoesPagamento String? @db.Text
+
+  /// Divulgação (seção 7): link longo e link curto.
+  slug        String @unique
+  codigoCurto String @unique
+
+  /// Segredo embutido no QR Code projetado no ambiente. Fica fora do link
+  /// público justamente para que a presença não possa ser registrada por quem
+  /// apenas conhece o endereço do evento.
+  tokenQr String @unique
+
+  /// Segredo da página de registro de presença à distância, presente apenas
+  /// em evento online ou híbrido. É separado do `tokenQr` de propósito: o link
+  /// remoto circula por e-mail entre os participantes a distância, e não pode
+  /// dar acesso ao QR projetado na sala nem ser revogado junto com ele.
+  tokenRemoto String? @unique
+
+  /// Código legível do evento, no padrão EVT-AAAA-NNNN.
+  codigoEvento String @unique
+
+  organizadorId String
+  organizador   Usuario @relation("EventosDoOrganizador", fields: [organizadorId], references: [id])
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  publicado    Boolean  @default(false)
+
+  /// Cancelamento mantém a página pública e o histórico para informar os
+  /// inscritos, mas bloqueia novas inscrições e registros de presença.
+  canceladoEm DateTime?
+
+  /// Exclusão é lógica: o evento some das áreas usuais sem apagar inscrições,
+  /// presenças, certificados ou arquivos que compõem o histórico.
+  excluidoEm DateTime?
+
+  /// Números agregados de inscrições e presenças cujo titular excluiu a conta.
+  /// Não são dado pessoal: não há nome, vínculo nem identificador de pessoa.
+  /// Existem para que o total histórico do evento — quantos se inscreveram,
+  /// quantos compareceram — não mude quando alguém sai da plataforma.
+  inscricoesDeContasExcluidas Int @default(0)
+  presencasDeContasExcluidas  Int @default(0)
+
+  camposInscricao CampoInscricao[]
+
+  instituicoes EventoInstituicao[]
+  palestrantes Palestrante[]
+  materiais    MaterialApoio[]
+  inscricoes   Inscricao[]
+
+  @@index([organizadorId])
+  @@index([inicioEm])
+  @@index([excluidoEm])
+  @@index([certificadoBaseArquivoId])
+  @@index([bannerArquivoId])
+}
+
+/// Configuração global da plataforma. Linha única, de id fixo "global": o que
+/// vale para todos os eventos mora aqui, e não repetido em cada evento.
+///
+/// Hoje guarda apenas o modelo-base padrão de certificado. A PlanA mantém um
+/// modelo próprio, aplicado automaticamente a todo evento novo; o organizador
+/// pode substituí-lo por arte própria dentro do evento, sem que isso altere o
+/// padrão dos demais.
+model Configuracao {
+  id String @id @default("global")
+
+  /// Imagem-base A4 paisagem usada como modelo padrão de certificado.
+  /// É um único arquivo compartilhado por todos os eventos que não têm arte
+  /// própria — por isso nunca é apagado junto com a imagem de um evento.
+  certificadoBasePadraoArquivoId String?
+  certificadoBasePadraoArquivo   Arquivo? @relation("ModeloPadraoDeCertificado", fields: [certificadoBasePadraoArquivoId], references: [id])
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([certificadoBasePadraoArquivoId])
+}
+
+/// Seção 3: pode haver mais de um por evento. O campo vem preenchido por
+/// padrão com os dados do titular da conta, com possibilidade de alteração.
+model Palestrante {
+  id           String @id @default(cuid())
+  nome         String
+  qualificacao String @db.Text
+  ordem        Int    @default(0)
+
+  eventoId String
+  evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  @@index([eventoId])
+}
+
+/// Seção 3: material de apoio disponibilizado para download dos inscritos.
+model MaterialApoio {
+  id       String   @id @default(cuid())
+  nome     String
+  ordem    Int      @default(0)
+  criadoEm DateTime @default(now())
+
+  arquivoId String
+  arquivo   Arquivo @relation("MaterialDeApoio", fields: [arquivoId], references: [id])
+
+  eventoId String
+  evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  @@index([eventoId])
+  @@index([arquivoId])
+}
+
+/// Arquivo enviado pelo gestor e gravado no disco da VPS, fora da imagem da
+/// aplicação. A linha guarda o que é preciso para servir o arquivo com
+/// segurança: o tipo real (apurado pelos bytes, não pela extensão), o tamanho
+/// e o caminho relativo gerado pela plataforma — o nome original do envio
+/// nunca vira nome de arquivo em disco.
+model Arquivo {
+  id           String   @id @default(cuid())
+  nomeOriginal String
+  tipoMime     String
+  tamanhoBytes Int
+  caminho      String   @unique
+  criadoEm     DateTime @default(now())
+
+  enviadoPorId String
+  enviadoPor   Usuario @relation("ArquivosEnviados", fields: [enviadoPorId], references: [id])
+
+  logosDeInstituicoes Instituicao[]   @relation("LogoDaInstituicao")
+  imagensBase         Evento[]        @relation("ImagemBaseDoCertificado")
+  modelosPadrao       Configuracao[]  @relation("ModeloPadraoDeCertificado")
+  banners             Evento[]        @relation("BannerDoEvento")
+  materiais           MaterialApoio[] @relation("MaterialDeApoio")
+
+  @@index([enviadoPorId])
+}
+
+// ---------------------------------------------------------------------------
+// Inscrição, presença e certificado
+// ---------------------------------------------------------------------------
+
+/// Tipos de campo que o organizador pode acrescentar ao formulário de
+/// inscrição. Deliberadamente poucos: cada tipo novo é uma coluna a mais para
+/// validar, exportar e explicar, e a lista cobre o que eventos acadêmicos e
+/// institucionais costumam perguntar.
+enum TipoCampoInscricao {
+  TEXTO_CURTO
+  TEXTO_LONGO
+  NUMERO
+  DATA
+  SELECAO_UNICA
+  SELECAO_MULTIPLA
+  SIM_NAO
+}
+
+/// Pergunta adicional que o organizador faz no ato da inscrição.
+///
+/// Existe porque cada instituição pergunta algo diferente — o período que o
+/// aluno cursa, a lotação da servidora, a necessidade de acessibilidade — e
+/// engessar esses campos no schema obrigaria a alterar o banco a cada evento.
+///
+/// Campo não se apaga: arquiva-se. A resposta já dada por quem se inscreveu
+/// integra o registro daquela inscrição, e sumir com a pergunta deixaria a
+/// resposta órfã no relatório, sem cabeçalho que a explique.
+model CampoInscricao {
+  id       String @id @default(cuid())
+  eventoId String
+  evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  /// Pergunta como o participante a lê. Vira cabeçalho de coluna no relatório.
+  rotulo String
+
+  /// Texto de apoio abaixo do campo. É onde o organizador diz para que serve o
+  /// dado — exigência de transparência, já que a plataforma não tem como saber
+  /// de antemão a finalidade de uma pergunta que ela não escreveu.
+  ajuda String?
+
+  tipo        TipoCampoInscricao
+  obrigatorio Boolean            @default(false)
+  ordem       Int                @default(0)
+
+  /// Alternativas de SELECAO_UNICA e SELECAO_MULTIPLA, na ordem de exibição.
+  /// Vazio nos demais tipos.
+  opcoes String[] @default([])
+
+  criadoEm    DateTime  @default(now())
+  arquivadoEm DateTime?
+
+  respostas RespostaInscricao[]
+
+  @@index([eventoId, ordem])
+}
+
+/// Resposta de um participante a um campo personalizado.
+///
+/// O valor fica como texto já apresentável, e não como estrutura a
+/// reinterpretar: é assim que ele sai no relatório e é assim que o organizador
+/// o lê. Em SELECAO_MULTIPLA, as escolhas vêm unidas por "; ".
+///
+/// Sai do banco junto com a inscrição, por cascata — e, portanto, junto com a
+/// conta, quando o titular a exclui.
+model RespostaInscricao {
+  id String @id @default(cuid())
+
+  inscricaoId String
+  inscricao   Inscricao      @relation(fields: [inscricaoId], references: [id], onDelete: Cascade)
+  campoId     String
+  campo       CampoInscricao @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
+  valor String @db.Text
+
+  respondidoEm DateTime @default(now())
+
+  @@unique([inscricaoId, campoId])
+  @@index([campoId])
+}
+
+model Inscricao {
+  id String @id @default(cuid())
+
+  eventoId  String
+  evento    Evento  @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  criadaEm    DateTime  @default(now())
+  canceladaEm DateTime?
+
+  presenca    Presenca?
+  certificado Certificado?
+  respostas   RespostaInscricao[]
+
+  @@unique([eventoId, usuarioId])
+  @@index([usuarioId])
+}
+
+enum MetodoPresenca {
+  /// Seção 7: leitura do QR Code cruzada com o login e a geolocalização.
+  QR_GEOLOCALIZACAO
+  /// Registro à distância em evento online ou híbrido: o participante abre a
+  /// página própria do evento e digita o código pessoal da sua conta. Não há
+  /// QR projetado para ler nem local físico contra o qual conferir posição.
+  CODIGO_REMOTO
+  /// Alternativa subsidiária, lançada pela organização. Sempre disponível
+  /// porque a precisão do GPS varia em ambiente fechado (seção 8.1).
+  MANUAL
+}
+
+model Presenca {
+  id String @id @default(cuid())
+
+  inscricaoId String    @unique
+  inscricao   Inscricao @relation(fields: [inscricaoId], references: [id], onDelete: Cascade)
+
+  registradaEm DateTime       @default(now())
+  metodo       MetodoPresenca
+
+  /// Seção 9, retenção mínima: a coordenada do check-in esgota sua função
+  /// probatória quando o certificado é emitido. Estes três campos são anulados
+  /// nesse momento e `geoDescartadaEm` guarda a data do descarte — o registro
+  /// de que houve validação por geolocalização permanece, o dado pessoal não.
+  latitude        Float?
+  longitude       Float?
+  distanciaMetros Float?
+  precisaoMetros  Float?
+  geoDescartadaEm DateTime?
+
+  /// Preenchido apenas quando `metodo` é MANUAL: quem da organização lançou.
+  lancadaPorId String?
+  lancadaPor   Usuario? @relation("PresencaLancadaPor", fields: [lancadaPorId], references: [id])
+
+  @@index([lancadaPorId])
+}
+
+/// Seção 6: o certificado é gerado sob demanda, no momento da solicitação.
+/// O que fica armazenado é apenas o registro de aptidão e o código de
+/// validação — nunca o PDF, para não consumir o armazenamento contratado.
+model Certificado {
+  id String @id @default(cuid())
+
+  inscricaoId String    @unique
+  inscricao   Inscricao @relation(fields: [inscricaoId], references: [id], onDelete: Cascade)
+
+  /// Código impresso no bloco de validação, no padrão CERT-AAAA-NNNN-XXXXXX.
+  codigoValidacao String @unique
+
+  liberadoEm        DateTime  @default(now())
+  primeiraEmissaoEm DateTime?
+  totalEmissoes     Int       @default(0)
+}
+
+/// Registro de validação de um certificado cujo titular excluiu a conta.
+///
+/// Existe por um motivo só: o certificado já emitido está em poder de
+/// terceiros — a instituição que o recebeu, a banca que o avaliou — e o QR
+/// impresso nele leva à consulta pública de autenticidade. Apagar a conta sem
+/// mais nada transformaria um documento verdadeiro, já entregue, em documento
+/// que a própria plataforma passa a negar.
+///
+/// A chave do desenho está no que ele NÃO guarda: o nome do participante não
+/// fica aqui em texto legível. Do nome resta apenas um hash bcrypt, que não se
+/// lê nem se lista — só permite confirmar um nome que o consulente já tenha em
+/// mãos, lido no próprio documento que está conferindo. Quem abrir esta tabela
+/// não descobre quem participou de quê; quem tem o certificado impresso
+/// consegue provar que ele é autêntico. Era exatamente o que se queria manter.
+///
+/// O que resta em texto — evento, data, carga horária, organizadoras, método da
+/// presença — é dado sobre a atividade realizada, não sobre a pessoa. Não há
+/// e-mail, telefone, perfil, coordenada nem vínculo com conta, e não existe
+/// caminho de volta daqui para um titular cadastrado.
+///
+/// Por isso o registro é criado sempre, sem escolha do titular no momento da
+/// exclusão: sem dado pessoal legível, não há o que eliminar, e apagá-lo só
+/// prejudicaria terceiros que confiaram no documento.
+model CertificadoArquivado {
+  id              String @id @default(cuid())
+  codigoValidacao String @unique
+
+  /// Hash bcrypt do nome normalizado — sem acento, sem caixa, sem espaço
+  /// duplicado. Custo alto de propósito: nome é segredo de baixa entropia, e a
+  /// lentidão do bcrypt é o que torna inviável varrer uma lista de nomes contra
+  /// o registro. Ainda assim, testar um nome exige já possuir o código impresso.
+  nomeHash            String
+  eventoNome          String
+  eventoInicioEm      DateTime
+  cargaHorariaMinutos Int
+
+  /// Nomes das instituições organizadoras, na ordem em que saem no certificado.
+  /// Texto simples porque é uma fotografia do documento, não uma relação viva.
+  organizacoes String
+
+  metodoPresenca       MetodoPresenca
+  presencaRegistradaEm DateTime
+  liberadoEm           DateTime
+  arquivadoEm          DateTime       @default(now())
+}
+
+/// Trilha do que o master faz sobre contas e instituições.
+///
+/// Poder administrativo sem registro é exatamente o que costuma dar errado:
+/// depois de uma suspensão contestada ou de uma senha redefinida, ninguém
+/// consegue reconstruir quem fez o quê. O art. 37 da LGPD já obriga o
+/// controlador a manter registro das operações de tratamento; aqui isso vira
+/// linha de banco em vez de promessa.
+///
+/// Guarda identificadores e uma descrição curta — nunca senha, nunca o
+/// conteúdo do dado alterado.
+model RegistroAdministrativo {
+  id String @id @default(cuid())
+
+  /// Quem executou. Texto e não chave estrangeira: se a conta do executor for
+  /// apagada um dia, o registro do que ela fez não pode desaparecer junto.
+  autorId   String
+  autorNome String
+
+  acao     String
+  /// Sobre quem ou o quê. Conta, instituição ou vínculo.
+  alvoTipo String
+  alvoId   String
+  alvoNome String
+
+  /// Motivo declarado, quando a ação o exige.
+  detalhe String? @db.Text
+
+  criadoEm DateTime @default(now())
+
+  @@index([alvoTipo, alvoId])
+  @@index([criadoEm])
+}
+
+/// Códigos pessoais já aposentados.
+///
+/// Guarda apenas o código, sem vínculo com a conta que o usou: a finalidade é
+/// uma só — impedir que um código trocado por suspeita de vazamento volte a
+/// circular, sorteado para outra pessoa. Guardar de quem ele era não serviria a
+/// essa finalidade, e portanto não se guarda.
+model CodigoUsuarioAposentado {
+  codigo       String   @id
+  aposentadoEm DateTime @default(now())
+}
+
+/// Tokens de uso único para recuperação de senha. O token enviado por e-mail
+/// nunca é salvo em claro: somente seu hash SHA-256 chega ao banco.
+model RedefinicaoSenha {
+  id        String @id @default(cuid())
+  tokenHash String @unique
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  criadoEm DateTime  @default(now())
+  expiraEm DateTime
+  usadoEm  DateTime?
+
+  @@index([usuarioId, usadoEm])
+  @@index([expiraEm])
+}
+
+// ---------------------------------------------------------------------------
+// Comunicação
+// ---------------------------------------------------------------------------
+
+enum TipoNotificacao {
+  /// Alteração relevante na própria conta, como a troca do código pessoal.
+  /// Serve para o titular perceber uma mudança que não tenha sido ele a fazer.
+  SEGURANCA_CONTA
+  INSCRICAO_CONFIRMADA
+  PRESENCA_REGISTRADA
+  CERTIFICADO_DISPONIVEL
+  AVISO_EVENTO
+  SUPORTE
+}
+
+/// Seção 7: central de notificações interna — canal de referência, já que
+/// parte dos participantes não instalará o PWA e não receberá push.
+model Notificacao {
+  id String @id @default(cuid())
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  tipo   TipoNotificacao
+  titulo String
+  corpo  String          @db.Text
+  link   String?
+
+  criadaEm DateTime  @default(now())
+  lidaEm   DateTime?
+
+  @@index([usuarioId, lidaEm])
+}
+
+/// Seção 8.2: toda nova mensagem na central também vai como push do navegador.
+model AssinaturaPush {
+  id String @id @default(cuid())
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  endpoint String @unique
+  p256dh   String
+  auth     String
+
+  /// Ajuda a orientar o usuário de iOS que assinou sem instalar na tela de
+  /// início — caso em que o push não chega.
+  userAgent String?
+
+  criadaEm     DateTime  @default(now())
+  ultimoEnvoEm DateTime?
+
+  @@index([usuarioId])
+}
+
+enum StatusChamado {
+  ABERTO
+  EM_ANDAMENTO
+  RESOLVIDO
+}
+
+/// Seção 7: abertura de chamados pelos usuários para suporte.
+model Chamado {
+  id String @id @default(cuid())
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  assunto String
+  status  StatusChamado @default(ABERTO)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  mensagens ChamadoMensagem[]
+
+  @@index([usuarioId, status])
+}
+
+model ChamadoMensagem {
+  id String @id @default(cuid())
+
+  chamadoId String
+  chamado   Chamado @relation(fields: [chamadoId], references: [id], onDelete: Cascade)
+
+  autorId  String
+  corpo    String   @db.Text
+  criadaEm DateTime @default(now())
+
+  @@index([chamadoId])
+}

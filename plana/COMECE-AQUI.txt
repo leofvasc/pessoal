@@ -1,0 +1,35 @@
+PlanA — plataforma de gestão de eventos
+=======================================
+
+Este pacote tem o código completo da plataforma, pronto para ser instalado
+num servidor.
+
+O QUE FAZER
+-----------
+1. Siga o guia de implantação que acompanha esta entrega. Ele começa na
+   contratação do servidor e termina com o site no ar.
+2. O arquivo README.md, aqui nesta pasta, é a referência técnica: o que já
+   está pronto, o que falta e como atualizar depois.
+
+O QUE HÁ AQUI
+-------------
+  Dockerfile            a receita de como o servidor monta a aplicação
+  docker-compose.yml    o que sobe no servidor: banco de dados, aplicação e o
+                        proxy que cuida do certificado de segurança
+  Caddyfile             configuração desse proxy
+  .env.example          modelo do arquivo de senhas do servidor
+  scripts/              utilitários: gerar o .env, criar sua conta de gestor,
+                        gerar as chaves de notificação, limpar dados vencidos
+  prisma/               estrutura do banco de dados e suas migrações
+  src/                  o código da aplicação
+  public/               ícones e arquivos servidos direto ao navegador
+
+O QUE NÃO ESTÁ AQUI, E POR QUÊ
+------------------------------
+  .env                  guarda as senhas do SEU servidor. É criado por você,
+                        no servidor, com: bash scripts/preparar-env.sh
+  node_modules/         as bibliotecas são baixadas no servidor durante a
+                        instalação; viriam com centenas de megabytes à toa
+
+O arquivo .env.example acompanha o pacote apenas como referência segura para
+desenvolvimento local. Na VPS, use sempre scripts/preparar-env.sh.

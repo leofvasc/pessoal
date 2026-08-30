@@ -1,0 +1,32 @@
+{
+  "name": "PlanA — gestão de eventos",
+  "short_name": "PlanA",
+  "description": "Inscrição, registro de presença por QR Code e emissão automática de certificado.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/conta",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#6B4CF6",
+  "theme_color": "#6B4CF6",
+  "icons": [
+    { "src": "/icones/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icones/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icones/icone-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Meus eventos",
+      "short_name": "Eventos",
+      "url": "/conta",
+      "icons": [{ "src": "/icones/icone-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Meus certificados",
+      "short_name": "Certificados",
+      "url": "/conta/certificados",
+      "icons": [{ "src": "/icones/icone-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

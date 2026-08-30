@@ -1,0 +1,17 @@
+# TLS automático via Let's Encrypt. O Caddy renova sozinho.
+{$DOMINIO} {
+	encode gzip zstd
+
+	# Repassa o host e o protocolo reais para a aplicação montar os links
+	# absolutos dos QR Codes corretamente.
+	reverse_proxy app:3000 {
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	header {
+		# HSTS: uma vez em HTTPS, o navegador não tenta mais texto claro.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}
