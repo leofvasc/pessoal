@@ -1,0 +1,76 @@
+name: Slide Assistido - instalador Windows
+
+on:
+  push:
+    paths:
+      - "slide-assistido/**"
+      - ".github/workflows/slide-assistido-windows.yml"
+  workflow_dispatch:
+
+jobs:
+  instalador:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: slide-assistido
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Testes de navegação por voz
+        run: node tests/voice-navigation.test.cjs
+
+      - name: Inno Setup
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+
+      - name: Montar instalador
+        run: ./windows/construir.ps1
+
+      - name: Instalar em modo silencioso e testar
+        run: |
+          $Setup = Get-ChildItem windows/build/saida/*.exe | Select-Object -First 1
+          Start-Process $Setup.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/NORESTART" -Wait
+          $Root = Join-Path $env:LOCALAPPDATA "Programs\SlideAssistido"
+          $Server = Start-Process (Join-Path $Root "python\python.exe") -ArgumentList "`"$Root\app\server.py`"", "--sem-navegador" -WorkingDirectory "$Root\app" -PassThru -RedirectStandardOutput servidor.log -RedirectStandardError servidor-erros.log
+          $Base = "http://localhost:4174"
+          $Origin = @{ Origin = $Base }
+          for ($i = 0; $i -lt 30; $i++) { try { $Health = Invoke-RestMethod "$Base/api/health"; break } catch { Start-Sleep 1 } }
+          if (-not $Health) { Get-Content servidor.log, servidor-erros.log; throw "O servidor instalado não respondeu." }
+          $Health | ConvertTo-Json
+          if ($Health.data -notlike "*AppData\Local\SlideAssistido*") { throw "Os dados não estão na pasta do usuário." }
+          if ((Invoke-WebRequest "$Base/styles.css").Headers["Content-Type"] -notlike "text/css*") { throw "CSS com tipo incorreto." }
+          if (-not (Invoke-RestMethod "$Base/api/semantic-status").configured) { throw "sentence-transformers ausente." }
+
+          # Importação de PDF e busca semântica com o Python embutido.
+          & "$Root\python\python.exe" -c "import pymupdf; d = pymupdf.open(); [d.new_page().insert_text((72, 72), t) for t in ('Proteção de dados de crianças', 'Publicidade infantil em jogos', 'Sanções administrativas')]; d.save('teste.pdf')"
+          $Deck = Invoke-RestMethod "$Base/api/import" -Method Post -Headers ($Origin + @{ "X-Filename" = "teste.pdf" }) -ContentType "application/octet-stream" -InFile teste.pdf
+          if ($Deck.telas.Count -ne 3) { throw "Importação incorreta." }
+          Invoke-WebRequest "$Base/user_data/$($Deck.id)/page-001.png" | Out-Null
+          $Texts = $Deck.telas | ForEach-Object { "Tema: " + $_.tema }
+          Invoke-RestMethod "$Base/api/semantic/index" -Method Post -Headers $Origin -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes((@{ deck_id = $Deck.id; texts = @($Texts) } | ConvertTo-Json))) | ConvertTo-Json
+          $Match = Invoke-RestMethod "$Base/api/semantic/match" -Method Post -Headers $Origin -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes((@{ deck_id = $Deck.id; query = "agora vamos falar das multas e penalidades"; current = 0 } | ConvertTo-Json)))
+          $Match | ConvertTo-Json -Depth 5
+          if (-not $Match.candidates) { throw "A busca semântica não retornou candidatas." }
+          if ($Match.candidates[0].index -ne 2) { Write-Warning "A busca semântica não colocou a tela de sanções em primeiro lugar." }
+          $Intent = Invoke-RestMethod "$Base/api/semantic/intent" -Method Post -Headers $Origin -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes((@{ deck_id = $Deck.id; text = "pode sim, vamos lá" } | ConvertTo-Json)))
+          $Intent | ConvertTo-Json
+          Invoke-RestMethod "$Base/api/decks/$($Deck.id)" -Method Delete -Headers $Origin | Out-Null
+          Stop-Process -Id $Server.Id -Force
+          Get-Content servidor.log
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SlideAssistido-Instalador-v11
+          path: slide-assistido/windows/build/saida/*.exe
+          compression-level: 0
+          retention-days: 30

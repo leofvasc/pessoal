@@ -573,7 +573,7 @@ function holdSuggestionWhileAnswering(phrase) {
   if (!pending || !pending.expires || !classifyAnswer(phrase)) return;
   pending.expires = Math.max(pending.expires, Date.now() + 3000);
   clearTimeout(suggestionTimeout);
-  suggestionTimeout = setTimeout(clearSuggestion, pending.expires - Date.now());
+  suggestionTimeout = setTimeout(() => clearSuggestion("expired"), pending.expires - Date.now());
 }
 
 function acceptSuggestion() {
@@ -655,7 +655,8 @@ function classifyAnswer(phrase) {
 }
 
 async function classifyAnswerSemantic(phrase) {
-  if (!semanticConfigured) return null;
+  // Sem a busca semântica ativada, o modelo não é carregado (nem baixado) no meio da apresentação.
+  if (!semanticConfigured || !$("#semantic-enabled").checked) return null;
   try {
     const response = await fetch("/api/semantic/intent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ deck_id: activeId, text: phrase.slice(0, 500) }) });
     const data = await response.json();

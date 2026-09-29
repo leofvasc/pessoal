@@ -1,14 +1,24 @@
 # Slide Assistido
 
-Protótipo local para importar apresentações, preparar informações de cada tela e sugerir mudanças durante a fala. A versão 10 mantém uma apresentação de demonstração e aceita arquivos próprios.
+Protótipo local para importar apresentações, preparar informações de cada tela e sugerir mudanças durante a fala. A versão 11 mantém uma apresentação de demonstração, aceita arquivos próprios e pode ser instalada no Windows.
 
-## Início no Windows
+## Instalação no Windows
 
-Feche a janela preta de uma versão anterior, extraia o ZIP em uma nova pasta, abra `slide-assistido` e execute `INICIAR_NO_WINDOWS.bat`. O navegador abrirá em `http://localhost:4174/?v=10`. Confirme “Protótipo local · versão 10” no alto.
+Execute `SlideAssistido-Instalador-v11.exe`. A instalação é feita apenas para o usuário atual, em `%LOCALAPPDATA%\Programs\SlideAssistido`, e não pede senha de administrador. O instalador já contém o Python e todas as dependências; não é preciso instalar nada antes. Como o instalador não tem assinatura digital, o Windows SmartScreen pode exibir o aviso “O Windows protegeu o computador”; nesse caso, clique em “Mais informações” e em “Executar assim mesmo”.
 
-O primeiro início instala PyMuPDF, WebSockets e Sentence Transformers, caso estejam ausentes. Isso exige internet e pode demorar. O modelo semântico é baixado na primeira preparação semântica e depois permanece no cache do computador.
+O atalho “Slide Assistido” no menu Iniciar (e, se escolhido, na área de trabalho) abre uma janela preta com o servidor local e o navegador em `http://localhost:4174`. Mantenha a janela preta aberta durante o uso e feche-a para encerrar o programa. Clicar de novo no atalho com o programa aberto apenas reabre o navegador. Confirme “Protótipo local · versão 11” no alto.
 
-Para iniciar manualmente em outro sistema, instale as dependências com `python3 -m pip install pymupdf 'websockets>=14,<17' sentence-transformers`, execute `python3 server.py` dentro de `slide-assistido` e acesse `http://localhost:4174`.
+As apresentações importadas ficam em `%LOCALAPPDATA%\SlideAssistido\user_data`, fora da pasta do programa, e são preservadas em atualizações e na desinstalação. O menu Iniciar tem o atalho “Pasta das apresentações”. Para trazer as apresentações de uma versão anterior (iniciada pelo arquivo `.bat`), copie o conteúdo da antiga pasta `user_data` para essa pasta com o programa fechado.
+
+O modelo semântico continua sendo baixado da internet na primeira preparação semântica (cerca de 470 MB) e depois permanece no cache do computador.
+
+O instalador é gerado pelo GitHub Actions (`.github/workflows/slide-assistido-windows.yml`), que também o instala em uma máquina Windows limpa e testa importação de PDF e busca semântica. Para gerá-lo manualmente em um Windows com Python 3.12 e Inno Setup 6, execute `powershell -ExecutionPolicy Bypass -File windows\construir.ps1`; o resultado fica em `windows\build\saida`.
+
+## Execução sem instalador
+
+`INICIAR_NO_WINDOWS.bat` continua disponível para quem tem Python instalado. Ele instala PyMuPDF, WebSockets e Sentence Transformers, caso estejam ausentes, e grava as apresentações na pasta `user_data` ao lado do programa.
+
+Para iniciar manualmente em outro sistema, instale as dependências com `python3 -m pip install pymupdf 'websockets>=14,<17' sentence-transformers`, execute `python3 server.py` dentro de `slide-assistido` e acesse `http://localhost:4174`. A variável de ambiente `SLIDE_ASSISTIDO_DATA` permite escolher outra pasta de dados.
 
 ## Biblioteca e arquivos
 
@@ -16,7 +26,7 @@ Use o botão “Nova apresentação” ou o cartão com o símbolo “+”. Sele
 
 O PPTX exige LibreOffice instalado no computador. Ele é convertido em PDF e perde animações, vídeos e entradas progressivas. Os arquivos importados ficam em `user_data`. Título, comentários, palavras-chave, configurações e última tela visitada ficam no arquivo da própria apresentação. A biblioteca permite pesquisar, renomear e excluir apresentações.
 
-O comando “Baixar backup” gera um ZIP de `user_data`. Ao atualizar o programa, copie a pasta `user_data` da versão anterior para a nova pasta antes de iniciar.
+O comando “Baixar backup” gera um ZIP que contém a pasta `user_data`. Para restaurar, extraia o ZIP e copie o conteúdo dessa pasta para a pasta de dados com o programa fechado.
 
 ## Preparação e busca semântica
 
@@ -60,6 +70,6 @@ Na Deepgram, será necessário manter conta ativa, chave de API e saldo ou plano
 
 ## Limites desta versão
 
-A versão 10 continua sendo local, sem conta administrativa, HTTPS, sincronização entre aparelhos ou banco de dados. A implantação em `apresenta.plana.app` exigirá a arquitetura de produção descrita no planejamento.
+A versão 11 continua sendo local, sem conta administrativa, HTTPS, sincronização entre aparelhos ou banco de dados. A implantação em `apresenta.plana.app` exigirá a arquitetura de produção descrita no planejamento.
 
 O código próprio do protótipo está sob a licença Apache 2.0, incluída em `LICENSE`. A licença não transfere direitos sobre a marca, os arquivos de apresentações ou os comentários do usuário.

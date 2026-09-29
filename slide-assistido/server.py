@@ -1,10 +1,15 @@
 """Servidor local da biblioteca Slide Assistido. Requer PyMuPDF; PPTX requer LibreOffice."""
 import json
 import os
+import sys
 import asyncio
 import threading
 import hashlib
+import importlib.util
 import math
+import mimetypes
+import socket
+import webbrowser
 from pathlib import Path
 import shutil
 import subprocess
@@ -14,13 +19,36 @@ import zipfile
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlsplit
 
-import fitz
+try:
+    import pymupdf as fitz
+except ImportError:
+    import fitz
 from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
 
 ROOT = Path(__file__).resolve().parent
-DATA = ROOT / "user_data"
-DATA.mkdir(exist_ok=True)
+HTTP_PORT = 4174
+VOICE_PORT = 4176
+ALLOWED_ORIGINS = (f"http://localhost:{HTTP_PORT}", f"http://127.0.0.1:{HTTP_PORT}")
+ALLOWED_HOSTS = (f"localhost:{HTTP_PORT}", f"127.0.0.1:{HTTP_PORT}")
+
+
+def data_folder():
+    """Instalado, o programa fica em pasta própria e os dados do usuário vão para o perfil do Windows."""
+    if os.environ.get("SLIDE_ASSISTIDO_DATA"):
+        return Path(os.environ["SLIDE_ASSISTIDO_DATA"])
+    if (ROOT / ".instalado").exists():
+        base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        return Path(base) / "SlideAssistido" / "user_data"
+    return ROOT / "user_data"
+
+
+DATA = data_folder()
+DATA.mkdir(parents=True, exist_ok=True)
+DECK_LOCK = threading.RLock()
+# O Windows pode registrar tipos errados no registro (por exemplo, .js como text/plain), e o navegador recusa o CSS.
+for extension, kind in {".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml"}.items():
+    mimetypes.add_type(kind, extension)
 MAX_BYTES = 60 * 1024 * 1024
 MAX_PAGES = 150
 VOICE_KEY = ""
@@ -61,7 +89,15 @@ def valid_deck_id(deck_id):
 def atomic_json(path, payload):
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-    temporary.replace(path)
+    # No Windows, antivírus e indexação podem prender o arquivo por instantes; a troca é repetida antes de falhar.
+    for attempt in range(6):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            if attempt == 5:
+                raise
+            threading.Event().wait(0.1 * (attempt + 1))
 
 
 def semantic_path(deck_id):
@@ -105,7 +141,7 @@ def classify_intent(text):
 
 async def voice_connection(browser):
     origin = browser.request.headers.get("Origin", "")
-    if origin not in ("http://localhost:4174", "http://127.0.0.1:4174"):
+    if origin not in ALLOWED_ORIGINS:
         await browser.close(code=1008, reason="Origem não autorizada")
         return
     key = VOICE_KEY
@@ -157,11 +193,17 @@ async def voice_connection(browser):
             await browser.send(json.dumps({"type": "error", "message": detail}))
 
 
-def run_voice_server():
+def run_voice_server(ready):
     async def runner():
-        async with serve(voice_connection, "127.0.0.1", 4176, max_size=2**19):
+        async with serve(voice_connection, "127.0.0.1", VOICE_PORT, max_size=2**19):
+            ready["ok"] = True
+            ready["event"].set()
             await asyncio.Future()
-    asyncio.run(runner())
+    try:
+        asyncio.run(runner())
+    except OSError as error:
+        ready["error"] = error
+        ready["event"].set()
 
 
 def office_path():
@@ -181,6 +223,29 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
 
+    def translate_path(self, path):
+        # As apresentações importadas ficam fora da pasta do programa quando ele está instalado.
+        clean = urlsplit(path).path
+        if clean.startswith("/user_data/"):
+            parts = [part for part in unquote(clean).removeprefix("/user_data/").split("/") if part not in ("", ".", "..")]
+            return str(DATA.joinpath(*parts))
+        return super().translate_path(path)
+
+    def list_directory(self, path):
+        self.send_error(404)
+        return None
+
+    def log_message(self, format, *args):
+        if os.environ.get("SLIDE_ASSISTIDO_DEBUG"):
+            super().log_message(format, *args)
+
+    def valid_host(self):
+        # Impede que outro site, por troca de DNS, leia a biblioteca local pelo navegador.
+        if self.headers.get("Host") in ALLOWED_HOSTS:
+            return True
+        self.json_response(403, {"error": "Endereço não autorizado."})
+        return False
+
     def json_response(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -191,7 +256,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def authorized_origin(self):
-        return self.headers.get("Origin") in ("http://localhost:4174", "http://127.0.0.1:4174")
+        return self.headers.get("Origin") in ALLOWED_ORIGINS
 
     def read_json(self, maximum=1024 * 1024):
         length = int(self.headers.get("Content-Length", "0"))
@@ -200,15 +265,17 @@ class Handler(SimpleHTTPRequestHandler):
         return json.loads(self.rfile.read(length))
 
     def do_GET(self):
+        if not self.valid_host():
+            return
         path = urlsplit(self.path).path
         if path == "/api/backup":
             with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as temporary:
                 backup_path = Path(temporary.name)
             try:
-                with zipfile.ZipFile(backup_path, "w", zipfile.ZIP_DEFLATED) as archive:
+                with DECK_LOCK, zipfile.ZipFile(backup_path, "w", zipfile.ZIP_DEFLATED) as archive:
                     for item in DATA.rglob("*"):
                         if item.is_file() and not item.name.endswith(".tmp"):
-                            archive.write(item, item.relative_to(DATA))
+                            archive.write(item, Path("user_data") / item.relative_to(DATA))
                 size = backup_path.stat().st_size
                 self.send_response(200)
                 self.send_header("Content-Type", "application/zip")
@@ -224,9 +291,9 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/voice-status":
             return self.json_response(200, {"configured": bool(VOICE_KEY)})
         if path == "/api/semantic-status":
-            return self.json_response(200, {"configured": True})
+            return self.json_response(200, {"configured": importlib.util.find_spec("sentence_transformers") is not None})
         if path == "/api/health":
-            return self.json_response(200, {"application": "ok", "deepgram_key": bool(VOICE_KEY), "semantic_model_loaded": SEMANTIC_MODEL is not None})
+            return self.json_response(200, {"application": "ok", "version": 11, "data": str(DATA), "deepgram_key": bool(VOICE_KEY), "semantic_model_loaded": SEMANTIC_MODEL is not None})
         if path == "/api/decks":
             entries = []
             for item in DATA.glob("*/deck.json"):
@@ -241,7 +308,9 @@ class Handler(SimpleHTTPRequestHandler):
             if not valid_deck_id(deck_id):
                 return self.json_response(404, {"error": "Apresentação não encontrada."})
             try:
-                return self.json_response(200, json.loads((DATA / deck_id / "deck.json").read_text(encoding="utf-8")))
+                with DECK_LOCK:
+                    deck = json.loads((DATA / deck_id / "deck.json").read_text(encoding="utf-8"))
+                return self.json_response(200, deck)
             except (OSError, ValueError):
                 return self.json_response(404, {"error": "Apresentação não encontrada."})
         if path.endswith("/deck.json") or path.endswith("/semantic.json") or "/original." in path or path.endswith(".py"):
@@ -250,11 +319,17 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_PATCH(self):
         path = urlsplit(self.path).path
+        if not self.valid_host():
+            return
         if not self.authorized_origin() or not path.startswith("/api/decks/"):
             return self.json_response(403, {"error": "Operação não autorizada."})
         deck_id = path.removeprefix("/api/decks/")
         if not valid_deck_id(deck_id):
             return self.json_response(404, {"error": "Apresentação não encontrada."})
+        with DECK_LOCK:
+            return self.patch_deck(deck_id)
+
+    def patch_deck(self, deck_id):
         deck_path = DATA / deck_id / "deck.json"
         try:
             body = self.read_json(2 * 1024 * 1024)
@@ -316,6 +391,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(400, {"error": str(error) or "Não foi possível salvar."})
 
     def do_DELETE(self):
+        if not self.valid_host():
+            return
         path = urlsplit(self.path).path
         if not self.authorized_origin() or not path.startswith("/api/decks/"):
             return self.json_response(403, {"error": "Operação não autorizada."})
@@ -325,12 +402,18 @@ class Handler(SimpleHTTPRequestHandler):
         folder = DATA / deck_id
         if not (folder / "deck.json").exists():
             return self.json_response(404, {"error": "Apresentação não encontrada."})
-        shutil.rmtree(folder)
+        with DECK_LOCK:
+            try:
+                shutil.rmtree(folder)
+            except OSError:
+                return self.json_response(409, {"error": "Um arquivo da apresentação está em uso. Feche-o e tente novamente."})
         SEMANTIC_CACHE.pop(deck_id, None)
         return self.json_response(200, {"deleted": True})
 
     def do_POST(self):
         global VOICE_KEY
+        if not self.valid_host():
+            return
         if urlsplit(self.path).path.startswith("/api/semantic/"):
             if not self.authorized_origin():
                 return self.json_response(403, {"error": "Origem não autorizada."})
@@ -400,6 +483,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json_response(200, {"configured": True})
         if urlsplit(self.path).path != "/api/import":
             return self.json_response(404, {"error": "Endereço não encontrado."})
+        if not self.authorized_origin():
+            return self.json_response(403, {"error": "Origem não autorizada."})
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
@@ -458,15 +543,56 @@ class Handler(SimpleHTTPRequestHandler):
             deck = {"id": deck_id, "title": Path(name).stem[:150], "telas": slides, "last_slide": 0, "settings": {"microphone": True, "semantic": True, "seconds": 8, "keep_open": False, "store_transcript": False, "minimum_score": 0.42, "minimum_margin": 0.025, "speech_window": 12, "suggestion_interval": 12, "rejection_block": 45}, "updated_at": None}
             atomic_json(folder / "deck.json", deck)
             return self.json_response(201, deck)
+        except subprocess.TimeoutExpired:
+            shutil.rmtree(folder, ignore_errors=True)
+            return self.json_response(400, {"error": "O LibreOffice demorou demais para converter este PPTX."})
         except (ValueError, RuntimeError, TimeoutError, fitz.FileDataError) as exc:
-            shutil.rmtree(folder)
+            shutil.rmtree(folder, ignore_errors=True)
             return self.json_response(400, {"error": str(exc)})
         except Exception:
-            shutil.rmtree(folder)
+            shutil.rmtree(folder, ignore_errors=True)
             return self.json_response(500, {"error": "Falha ao importar. Verifique o arquivo e tente novamente."})
 
 
+def already_running():
+    """Um segundo clique no atalho apenas reabre o navegador na instância já aberta."""
+    try:
+        with socket.create_connection(("127.0.0.1", HTTP_PORT), timeout=1) as connection:
+            connection.sendall(f"GET /api/health HTTP/1.0\r\nHost: localhost:{HTTP_PORT}\r\n\r\n".encode())
+            return b'"application": "ok"' in connection.recv(4096)
+    except OSError:
+        return False
+
+
+def main():
+    address = f"http://localhost:{HTTP_PORT}/?v=11"
+    if os.name == "nt":
+        os.system("title Slide Assistido - feche esta janela para encerrar")
+    if already_running():
+        print("O Slide Assistido já está aberto. Abrindo o navegador...", flush=True)
+        webbrowser.open(address)
+        return 0
+    try:
+        http_server = ThreadingHTTPServer(("127.0.0.1", HTTP_PORT), Handler)
+    except OSError:
+        print(f"A porta {HTTP_PORT} está ocupada por outro programa. Feche-o e abra o Slide Assistido novamente.", flush=True)
+        return 1
+    voice = {"event": threading.Event(), "ok": False}
+    threading.Thread(target=run_voice_server, args=(voice,), daemon=True).start()
+    voice["event"].wait(5)
+    print(f"Slide Assistido: {address}", flush=True)
+    print(f"Dados das apresentações: {DATA}", flush=True)
+    if not voice["ok"]:
+        print(f"Aviso: a porta {VOICE_PORT} da transcrição está ocupada. A apresentação funciona, mas sem comandos de voz.", flush=True)
+    print("Mantenha esta janela aberta durante o uso. Para encerrar, feche-a.", flush=True)
+    if "--sem-navegador" not in sys.argv:
+        webbrowser.open(address)
+    try:
+        http_server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    return 0
+
+
 if __name__ == "__main__":
-    print("Slide Assistido: http://localhost:4174", flush=True)
-    threading.Thread(target=run_voice_server, daemon=True).start()
-    ThreadingHTTPServer(("127.0.0.1", 4174), Handler).serve_forever()
+    sys.exit(main())
