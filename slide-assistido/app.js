@@ -65,6 +65,8 @@ let reconnectTimer = null;
 let reconnectAttempts = 0;
 let reconnectAllowed = false;
 let presentationState = "prepared";
+let voiceCommands = { next: [], prev: [], history: [], defaults: { next: true, prev: true, history: true } };
+const COMMAND_LABELS = { next: "Próximo slide", prev: "Slide anterior", history: "Voltar ao histórico" };
 
 function imagePath(page) {
   return deck.telas.find((slide) => slide.pagina_pdf === page)?.image || `./assets/page-${String(page).padStart(2, "0")}.jpg`;
@@ -519,7 +521,11 @@ function setPresentationState(state) {
   }
 }
 
-function setMicStatus(message) { $("#mic-status").textContent = message; updateSpeechDiagnostics(); }
+function setMicStatus(message) {
+  $("#mic-status").textContent = message;
+  $("#command-mic-status").textContent = message;
+  updateSpeechDiagnostics();
+}
 
 async function refreshMicrophones() {
   if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -619,20 +625,37 @@ function isReturnCommandPrefix(phrase) {
   return /^(?:por favor )?(?:volte|voltar|retorne|retornar|regresse|regressar)(?:(?: para| ao| a| o)?(?: a| o)?(?: tela| slide)?|(?: uma| um)(?: tela| slide)?)$/.test(normalized);
 }
 
-function classifyNavigationCommand(phrase) {
-  const normalized = normalize(phrase);
-  if (isReturnCommand(phrase)) return "history";
-  const courtesy = /^(?:por favor )?(.+?)(?: por favor)?$/.exec(normalized)?.[1] || "";
-  if (/^(?:proximo slide|proxima tela|slide seguinte|tela seguinte|slide proximo|tela proxima)$/.test(courtesy)) return "next";
-  if (/^(?:slide|tela) anterior$/.test(courtesy)) return "prev";
-  if (/^(?:passe|passa|avance|avanca|siga|va)(?: para| ao)? (?:o |a )?(?:(?:proximo|proxima|seguinte) (?:slide|tela)|(?:slide|tela) (?:proximo|proxima|seguinte))$/.test(courtesy)) return "next";
-  if (/^(?:passe|passa|retroceda|retroceder)(?: para| ao)? (?:o |a )?(?:slide|tela) anterior$/.test(courtesy)) return "prev";
+function commandKey(phrase) {
+  return /^(?:por favor )?(.+?)(?: por favor)?$/.exec(normalize(phrase))?.[1] || "";
+}
+
+// As frases personalizadas têm prioridade e podem substituir uma frase padrão de outro comando.
+function customNavigationCommand(phrase, commands = voiceCommands) {
+  const key = commandKey(phrase);
+  if (!key) return null;
+  return ["history", "prev", "next"].find((type) => (commands[type] || []).some((item) => commandKey(item) === key)) || null;
+}
+
+function classifyNavigationCommand(phrase, commands = voiceCommands) {
+  const custom = customNavigationCommand(phrase, commands);
+  if (custom) return custom;
+  const defaults = commands.defaults || {};
+  if (defaults.history !== false && isReturnCommand(phrase)) return "history";
+  const courtesy = commandKey(phrase);
+  if (defaults.next !== false && /^(?:proximo slide|proxima tela|slide seguinte|tela seguinte|slide proximo|tela proxima)$/.test(courtesy)) return "next";
+  if (defaults.prev !== false && /^(?:slide|tela) anterior$/.test(courtesy)) return "prev";
+  if (defaults.next !== false && /^(?:passe|passa|avance|avanca|siga|va)(?: para| ao)? (?:o |a )?(?:(?:proximo|proxima|seguinte) (?:slide|tela)|(?:slide|tela) (?:proximo|proxima|seguinte))$/.test(courtesy)) return "next";
+  if (defaults.prev !== false && /^(?:passe|passa|retroceda|retroceder)(?: para| ao)? (?:o |a )?(?:slide|tela) anterior$/.test(courtesy)) return "prev";
   return null;
 }
 
-function isNavigationCommandPrefix(phrase) {
+function isNavigationCommandPrefix(phrase, commands = voiceCommands) {
   const normalized = normalize(phrase);
-  if (isReturnCommandPrefix(phrase)) return true;
+  const key = commandKey(phrase);
+  if (key && ["next", "prev", "history"].some((type) => (commands[type] || []).some((item) => commandKey(item).startsWith(`${key} `)))) return true;
+  const defaults = commands.defaults || {};
+  if (defaults.history !== false && isReturnCommandPrefix(phrase)) return true;
+  if (defaults.next === false && defaults.prev === false) return false;
   if (/^(?:por favor )?(?:proximo|proxima|slide|tela)$/.test(normalized)) return true;
   return /^(?:por favor )?(?:passe|passa|avance|avanca|siga|va|retroceda|retroceder)(?: para| ao)?(?: o| a)?(?: proximo| proxima| seguinte| slide| tela)?(?: slide| tela| anterior)?$/.test(normalized);
 }
@@ -643,6 +666,76 @@ function executeVoiceNavigation(command) {
   handleAction(command);
   lastVoiceAction = command === "next" ? `Avanço por voz: tela ${currentSlide().pagina_pdf}` : `Recuo por voz: tela ${currentSlide().pagina_pdf}`;
   updateSpeechDiagnostics();
+}
+
+function parseCommandLines(value) {
+  const seen = new Set();
+  return value.split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim()).filter((line) => {
+    const key = commandKey(line);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function validateVoiceCommands(commands) {
+  const owners = new Map();
+  for (const type of Object.keys(COMMAND_LABELS)) {
+    if (commands[type].length > 20) return `Use no máximo 20 frases em “${COMMAND_LABELS[type]}”.`;
+    for (const phrase of commands[type]) {
+      const key = commandKey(phrase);
+      if (phrase.length > 80) return `A frase “${phrase}” passa de 80 caracteres.`;
+      if (key.split(" ").length < 2 && key.length < 6) return `“${phrase}” é curta demais. Use duas palavras ou pelo menos seis letras para não mudar de tela por engano.`;
+      if (classifyAnswer(phrase)) return `“${phrase}” é uma resposta às sugestões (sim ou não). Escolha outra frase.`;
+      if (owners.has(key) && owners.get(key) !== type) return `“${phrase}” está em “${COMMAND_LABELS[owners.get(key)]}” e em “${COMMAND_LABELS[type]}”.`;
+      owners.set(key, type);
+    }
+  }
+  return null;
+}
+
+function readCommandDraft() {
+  const draft = { defaults: {} };
+  for (const type of Object.keys(COMMAND_LABELS)) {
+    draft[type] = parseCommandLines($(`#command-${type}`).value);
+    draft.defaults[type] = $(`#command-${type}-defaults`).checked;
+  }
+  return draft;
+}
+
+function openVoiceCommands() {
+  for (const type of Object.keys(COMMAND_LABELS)) {
+    $(`#command-${type}`).value = voiceCommands[type].join("\n");
+    $(`#command-${type}-defaults`).checked = voiceCommands.defaults[type] !== false;
+  }
+  $("#command-test-result").textContent = "";
+  $("#commands-status").textContent = "";
+  $("#commands-dialog").showModal();
+}
+
+function showCommandTest(text) {
+  const draft = readCommandDraft();
+  const type = classifyNavigationCommand(text, draft);
+  const result = $("#command-test-result");
+  if (normalize(text).length < 2) result.textContent = "Digite ou fale uma frase para verificar.";
+  else if (type) result.textContent = `“${text}” → ${COMMAND_LABELS[type]} (${customNavigationCommand(text, draft) ? "frase personalizada" : "frase padrão"}).`;
+  else if (isNavigationCommandPrefix(text, draft)) result.textContent = `“${text}” é o começo de um comando. Na apresentação, o sistema espera até 4 segundos pelo restante.`;
+  else result.textContent = `“${text}” não é comando. Na apresentação, será tratada como fala comum.`;
+}
+
+async function saveVoiceCommands() {
+  const draft = readCommandDraft();
+  const problem = validateVoiceCommands(draft);
+  if (problem) { $("#commands-status").textContent = problem; return; }
+  try {
+    const response = await fetch("/api/voice-commands", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Não foi possível salvar os comandos.");
+    voiceCommands = data;
+    if (speechMode === "commands") stopRecognition();
+    $("#commands-dialog").close();
+    showToast("Comandos de voz salvos.");
+  } catch (error) { $("#commands-status").textContent = error.message; }
 }
 
 function classifyAnswer(phrase) {
@@ -743,6 +836,7 @@ function stopRecognition(manual = true) {
   voiceSocket = null;
   speechMode = "off";
   $("#test-microphone").textContent = "Testar microfone";
+  $("#command-test-microphone").textContent = "Testar com o microfone";
   if (!speechError) setMicStatus(`Microfone encerrado. ${speechFinalCount} trecho(s) reconhecido(s).`);
 }
 
@@ -784,6 +878,7 @@ async function beginRecognition(mode = "present", reconnecting = false) {
   }
   speechLevel = 0;
   $("#test-microphone").textContent = mode === "test" ? "Parar teste" : "Testar microfone";
+  $("#command-test-microphone").textContent = mode === "commands" ? "Parar teste" : "Testar com o microfone";
   setMicStatus("Solicitando acesso ao microfone…");
   listening = true;
   const epoch = ++recognitionEpoch;
@@ -847,6 +942,10 @@ async function beginRecognition(mode = "present", reconnecting = false) {
             $("#rehearsal-text").value = message.text;
             testSuggestion();
           }
+          if (mode === "commands") {
+            $("#command-test-text").value = message.text;
+            showCommandTest(message.text);
+          }
         }
         updateSpeechDiagnostics();
       } else if (message.type === "error") {
@@ -904,7 +1003,7 @@ function downloadTranscript() {
 
 async function startPresentation() {
   saveSlideFields();
-  if (speechMode === "test") stopRecognition();
+  if (speechMode === "test" || speechMode === "commands") stopRecognition();
   session = { deckId: activeId, title: deck.title || deck.titulo || "Apresentação", started: new Date().toISOString(), ended: null, lines: [], metrics: { suggestions: 0, accepted: 0, rejected: 0, ignored: 0, reconnects: 0 } };
   saveSession();
   recentSpeech = [];
@@ -1077,6 +1176,21 @@ fetch("/api/semantic-status").then((response) => response.json()).then((status) 
 $("#accept-suggestion").addEventListener("click", (event) => { event.stopPropagation(); acceptSuggestion(); });
 $("#dismiss-suggestion").addEventListener("click", (event) => { event.stopPropagation(); rejectSuggestion("botão"); });
 $("#download-transcript").addEventListener("click", downloadTranscript);
+document.querySelectorAll(".open-voice-commands").forEach((button) => button.addEventListener("click", openVoiceCommands));
+$("#save-commands").addEventListener("click", saveVoiceCommands);
+$("#commands-dialog").addEventListener("input", () => { $("#commands-status").textContent = ""; });
+$("#close-commands").addEventListener("click", () => $("#commands-dialog").close());
+$("#commands-dialog").addEventListener("close", () => { if (speechMode === "commands") stopRecognition(); });
+$("#command-test-button").addEventListener("click", () => showCommandTest($("#command-test-text").value));
+$("#command-test-text").addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); showCommandTest(event.target.value); } });
+$("#command-test-microphone").addEventListener("click", () => {
+  if (speechMode === "commands") stopRecognition();
+  else {
+    if (speechMode === "test") stopRecognition();
+    beginRecognition("commands");
+  }
+});
+fetch("/api/voice-commands").then((response) => response.ok ? response.json() : null).then((data) => { if (data) voiceCommands = data; }).catch(() => {});
 function saveSettings() {
   const settings = readSettings();
   applySettings(settings);

@@ -17,7 +17,7 @@ import tempfile
 import uuid
 import zipfile
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 try:
     import pymupdf as fitz
@@ -25,6 +25,7 @@ except ImportError:
     import fitz
 from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
+from websockets.exceptions import InvalidStatus
 
 ROOT = Path(__file__).resolve().parent
 HTTP_PORT = 4174
@@ -46,6 +47,8 @@ def data_folder():
 DATA = data_folder()
 DATA.mkdir(parents=True, exist_ok=True)
 DECK_LOCK = threading.RLock()
+VOICE_COMMANDS = DATA / "voice_commands.json"
+COMMAND_TYPES = ("next", "prev", "history")
 # O Windows pode registrar tipos errados no registro (por exemplo, .js como text/plain), e o navegador recusa o CSS.
 for extension, kind in {".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml"}.items():
     mimetypes.add_type(kind, extension)
@@ -119,6 +122,47 @@ def load_semantic_cache(deck_id, digest=None):
     return None
 
 
+def clean_voice_commands(payload):
+    """Frases personalizadas de navegação; a checagem de conflitos é feita na tela, com as mesmas regras da fala."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("defaults", {}), dict):
+        raise ValueError("Comandos de voz inválidos.")
+    result = {"defaults": {}}
+    for kind in COMMAND_TYPES:
+        phrases = payload.get(kind, [])
+        if not isinstance(phrases, list) or len(phrases) > 20:
+            raise ValueError("Cada comando aceita no máximo 20 frases.")
+        cleaned = []
+        for phrase in phrases:
+            text = " ".join(str(phrase).split())
+            if not 1 <= len(text) <= 80:
+                raise ValueError("Cada frase deve ter entre 1 e 80 caracteres.")
+            if text not in cleaned:
+                cleaned.append(text)
+        result[kind] = cleaned
+        result["defaults"][kind] = payload.get("defaults", {}).get(kind, True) is not False
+    return result
+
+
+def load_voice_commands():
+    try:
+        return clean_voice_commands(json.loads(VOICE_COMMANDS.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return clean_voice_commands({})
+
+
+async def open_deepgram(key):
+    """As frases personalizadas seguem como termos prioritários; se a Deepgram recusar o parâmetro, a conexão é refeita sem ele."""
+    terms = [phrase for kind in COMMAND_TYPES for phrase in load_voice_commands()[kind]][:50]
+    addresses = [VOICE_UPSTREAM + "".join(f"&keyterm={quote(term)}" for term in terms)] if terms else []
+    addresses.append(VOICE_UPSTREAM)
+    for index, address in enumerate(addresses):
+        try:
+            return await connect(address, additional_headers={"Authorization": f"Token {key}"}, open_timeout=10, max_size=2**20)
+        except InvalidStatus as error:
+            if index == len(addresses) - 1 or error.response.status_code in (401, 403):
+                raise
+
+
 def classify_intent(text):
     global INTENT_CACHE
     examples = {
@@ -150,7 +194,8 @@ async def voice_connection(browser):
         await browser.close()
         return
     try:
-        async with connect(VOICE_UPSTREAM, additional_headers={"Authorization": f"Token {key}"}, open_timeout=10, max_size=2**20) as deepgram:
+        deepgram = await open_deepgram(key)
+        try:
             await browser.send(json.dumps({"type": "ready"}))
 
             async def send_audio():
@@ -187,6 +232,8 @@ async def voice_connection(browser):
             for task in done:
                 if not task.cancelled():
                     task.result()
+        finally:
+            await deepgram.close()
     except Exception as exc:
         if browser.state.name == "OPEN":
             detail = "Autenticação recusada pela Deepgram." if "401" in str(exc) or "403" in str(exc) else "Não foi possível conectar à Deepgram. Confira a chave e a internet."
@@ -288,12 +335,14 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             finally:
                 backup_path.unlink(missing_ok=True)
+        if path == "/api/voice-commands":
+            return self.json_response(200, load_voice_commands())
         if path == "/api/voice-status":
             return self.json_response(200, {"configured": bool(VOICE_KEY)})
         if path == "/api/semantic-status":
             return self.json_response(200, {"configured": importlib.util.find_spec("sentence_transformers") is not None})
         if path == "/api/health":
-            return self.json_response(200, {"application": "ok", "version": 11, "data": str(DATA), "deepgram_key": bool(VOICE_KEY), "semantic_model_loaded": SEMANTIC_MODEL is not None})
+            return self.json_response(200, {"application": "ok", "version": 12, "data": str(DATA), "deepgram_key": bool(VOICE_KEY), "semantic_model_loaded": SEMANTIC_MODEL is not None})
         if path == "/api/decks":
             entries = []
             for item in DATA.glob("*/deck.json"):
@@ -467,6 +516,16 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.json_response(400, {"error": str(error) or "Dados inválidos."})
             except Exception:
                 return self.json_response(502, {"error": "Falha no modelo semântico local. Confira o terminal do servidor."})
+        if urlsplit(self.path).path == "/api/voice-commands":
+            if not self.authorized_origin():
+                return self.json_response(403, {"error": "Origem não autorizada."})
+            try:
+                commands = clean_voice_commands(self.read_json(64 * 1024))
+                with DECK_LOCK:
+                    atomic_json(VOICE_COMMANDS, commands)
+                return self.json_response(200, commands)
+            except (OSError, ValueError, TypeError, AttributeError) as error:
+                return self.json_response(400, {"error": str(error) or "Não foi possível salvar os comandos."})
         if urlsplit(self.path).path == "/api/voice-config":
             if not self.authorized_origin():
                 return self.json_response(403, {"error": "Origem não autorizada."})

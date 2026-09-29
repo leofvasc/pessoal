@@ -1,12 +1,12 @@
 ﻿; Instalador do Slide Assistido. Compilado por construir.ps1, que prepara a pasta build\stage.
 #define AppName "Slide Assistido"
-#define AppVersion "0.11.0"
+#define AppVersion "0.12.0"
 
 [Setup]
 AppId={{6F1D3C2A-8B4E-4C7A-9E51-2A7D0B6C4F11}
 AppName={#AppName}
 AppVersion={#AppVersion}
-AppVerName={#AppName} (protótipo, versão 11)
+AppVerName={#AppName} (protótipo, versão 12)
 AppPublisher=Leonardo Vasconcelos
 DefaultDirName={localappdata}\Programs\SlideAssistido
 DefaultGroupName={#AppName}
@@ -17,7 +17,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=build\saida
-OutputBaseFilename=SlideAssistido-Instalador-v11
+OutputBaseFilename=SlideAssistido-Instalador-v12
 SetupIconFile=build\app-icon.ico
 UninstallDisplayIcon={app}\app-icon.ico
 Compression=lzma2/max

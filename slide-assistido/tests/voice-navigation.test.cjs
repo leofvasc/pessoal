@@ -5,7 +5,7 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const names = [
-  "normalize", "isReturnCommand", "isReturnCommandPrefix", "classifyNavigationCommand",
+  "normalize", "commandKey", "customNavigationCommand", "parseCommandLines", "validateVoiceCommands", "classifyAnswer", "isReturnCommand", "isReturnCommandPrefix", "classifyNavigationCommand",
   "isNavigationCommandPrefix", "executeVoiceNavigation", "recordSpeech",
 ];
 function extractFunction(name) {
@@ -31,6 +31,8 @@ const state = {
 const context = vm.createContext({
   Date,
   navigationCommandPrefix: null,
+  voiceCommands: { next: [], prev: [], history: [], defaults: { next: true, prev: true, history: true } },
+  COMMAND_LABELS: { next: "Próximo slide", prev: "Slide anterior", history: "Voltar ao histórico" },
   recentSpeech: [],
   session: { lines: [], metrics: { accepted: 0 } },
   ui: { present: { classList: { contains: () => false } } },
@@ -51,7 +53,6 @@ const context = vm.createContext({
     context.pending = null;
     if (state.history.length) state.current = state.history.pop();
   },
-  classifyAnswer: (text) => text === "sim, abrir" ? "yes" : null,
   classifyAnswerSemantic: async () => null,
   acceptSuggestion: () => {
     state.actions.push("accept");
@@ -81,6 +82,29 @@ const cases = [
 for (const [phrase, action] of cases) {
   assert.equal(context.classifyNavigationCommand(phrase), action, phrase);
 }
+
+// Frases personalizadas, com e sem as frases padrão.
+const custom = {
+  next: ["seguindo adiante"], prev: ["voltar um slide"], history: ["retome a tela de antes"],
+  defaults: { next: true, prev: true, history: false },
+};
+const customCases = [
+  ["Seguindo adiante!", "next"], ["retome a tela de antes, por favor", "history"],
+  ["voltar um slide", "prev"], ["volte para a tela anterior", null],
+  ["próximo slide", "next"], ["slide anterior", "prev"], ["agora seguindo adiante com o tema", null],
+];
+for (const [phrase, action] of customCases) {
+  assert.equal(context.classifyNavigationCommand(phrase, custom), action, `personalizado: ${phrase}`);
+}
+assert.equal(context.isNavigationCommandPrefix("retome a tela", custom), true, "Início de frase personalizada aguarda o restante");
+assert.equal(context.isNavigationCommandPrefix("voltar ao slide", custom), false, "Frases padrão desativadas não retêm trechos");
+assert.equal(context.classifyNavigationCommand("volte para a tela anterior"), "history", "Sem personalização, o padrão continua valendo");
+assert.equal(JSON.stringify(context.parseCommandLines(" seguindo  adiante \n\nSeguindo adiante\nretome")), JSON.stringify(["seguindo adiante", "retome"]));
+const valid = (overrides) => context.validateVoiceCommands({ next: [], prev: [], history: [], defaults: {}, ...overrides });
+assert.equal(valid(custom), null);
+assert.match(valid({ next: ["vai"] }), /curta demais/);
+assert.match(valid({ history: ["não agora"] }), /resposta às sugestões/);
+assert.match(valid({ next: ["seguindo adiante"], prev: ["Seguindo adiante"] }), /está em/);
 
 async function exercise() {
   state.pending = { index: 3 };
@@ -113,6 +137,10 @@ async function exercise() {
   await context.recordSpeech("no próximo slide veremos os resultados");
   assert.equal(state.actions.length, beforeNarrative, "Fala narrativa não navega");
   assert.deepEqual(state.actions, ["next", "history", "next", "prev", "accept", "history"]);
-  console.log(`VOICE_NAVIGATION_OK ${cases.length} frases e fluxo com sugestão e trechos divididos`);
+  context.voiceCommands = custom;
+  await context.recordSpeech("retome a tela");
+  await context.recordSpeech("de antes");
+  assert.equal(state.actions.at(-1), "history", "Frase personalizada dividida em dois trechos navega");
+  console.log(`VOICE_NAVIGATION_OK ${cases.length + customCases.length} frases e fluxo com sugestão e trechos divididos`);
 }
 exercise().catch((error) => { console.error(error); process.exitCode = 1; });

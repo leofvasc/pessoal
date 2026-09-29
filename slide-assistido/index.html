@@ -6,14 +6,14 @@
     <meta name="theme-color" content="#101b34" />
     <title>Slide Assistido</title>
     <link rel="icon" href="./assets/app-icon.png" />
-    <link rel="stylesheet" href="./styles.css?v=11" />
+    <link rel="stylesheet" href="./styles.css?v=12" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
         <img class="wordmark" src="./assets/wordmark.png" alt="Slide Assistido" />
         <div class="topbar-right">
-          <span class="local-badge"><i></i> Protótipo local · versão 11</span>
+          <span class="local-badge"><i></i> Protótipo local · versão 12</span>
           <button class="avatar" aria-label="Conta administrativa">LV</button>
         </div>
       </header>
@@ -32,6 +32,7 @@
           </div>
           <div class="toolbar-actions">
             <label class="searchbox"><span>⌕</span><input id="search-input" placeholder="Buscar apresentação" /></label>
+            <button type="button" class="button button-outline open-voice-commands">Comandos de voz</button>
             <button id="download-backup" class="button button-outline">Baixar backup</button>
             <button id="new-presentation" class="button button-outline">＋ Nova apresentação</button>
             <input id="file-import" type="file" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden />
@@ -106,6 +107,7 @@
             <div class="field-hint">Depois de permitir o microfone, selecione sua lapela nesta lista e repita o teste.</div>
             <button id="test-microphone" type="button" class="button button-outline microphone-test">Testar microfone</button>
             <div id="speech-preview" class="speech-preview" aria-live="polite">Diga uma frase e confira aqui se há sinal de áudio e transcrição.</div>
+            <button type="button" class="text-button open-voice-commands commands-link">Configurar comandos de voz (próximo, anterior e histórico)</button>
             <label for="suggestion-seconds" class="field-label session-label">Tempo da sugestão (segundos)</label>
             <input id="suggestion-seconds" class="keywords-editor" type="number" min="3" max="60" value="8" />
             <label class="session-option session-label"><input id="keep-suggestion-open" type="checkbox" /> Manter sugestão até eu responder</label>
@@ -147,8 +149,49 @@
         <div id="ai-status" class="ai-status"><i></i><span>IA aguardando</span></div>
         <div id="speech-debug" class="speech-debug hidden" aria-live="polite"></div>
       </main>
+      <dialog id="commands-dialog" class="commands-dialog" aria-labelledby="commands-title">
+        <div class="commands-body">
+          <div class="eyebrow">CONFIGURAÇÃO</div>
+          <h2 id="commands-title">Comandos de voz</h2>
+          <p class="field-hint">Os comandos valem para todas as apresentações. Uma frase só muda a tela quando é dita sozinha, numa pausa da fala; dentro de uma frase maior, ela é ignorada. As frases personalizadas têm prioridade sobre as padrão. Use duas palavras ou mais e evite expressões que você costuma dizer isoladamente.</p>
+          <fieldset class="command-group">
+            <legend>Próximo slide</legend>
+            <p class="field-hint">Avança uma tela na ordem da apresentação.</p>
+            <p class="default-phrases"><b>Frases padrão:</b> próximo slide · próxima tela · slide seguinte · passe para o próximo slide · avance para a próxima tela</p>
+            <label class="session-option"><input id="command-next-defaults" type="checkbox" checked /> Aceitar também as frases padrão</label>
+            <label for="command-next" class="field-label session-label">Frases personalizadas (uma por linha)</label>
+            <textarea id="command-next" rows="3" placeholder="Ex.: seguindo adiante"></textarea>
+          </fieldset>
+          <fieldset class="command-group">
+            <legend>Slide anterior</legend>
+            <p class="field-hint">Recua uma tela na ordem da apresentação.</p>
+            <p class="default-phrases"><b>Frases padrão:</b> slide anterior · tela anterior · passe para o slide anterior · retroceda para a tela anterior</p>
+            <label class="session-option"><input id="command-prev-defaults" type="checkbox" checked /> Aceitar também as frases padrão</label>
+            <label for="command-prev" class="field-label session-label">Frases personalizadas (uma por linha)</label>
+            <textarea id="command-prev" rows="3" placeholder="Ex.: um passo atrás"></textarea>
+          </fieldset>
+          <fieldset class="command-group">
+            <legend>Voltar ao histórico</legend>
+            <p class="field-hint">Retorna à última tela exibida, mesmo depois de um salto por sugestão ou pela miniatura. Se as frases padrão parecerem próximas demais de “slide anterior”, desmarque-as e cadastre uma frase bem diferente.</p>
+            <p class="default-phrases"><b>Frases padrão:</b> volte para a tela anterior · voltar ao slide anterior · voltar um slide · retorne um slide</p>
+            <label class="session-option"><input id="command-history-defaults" type="checkbox" checked /> Aceitar também as frases padrão</label>
+            <label for="command-history" class="field-label session-label">Frases personalizadas (uma por linha)</label>
+            <textarea id="command-history" rows="3" placeholder="Ex.: retome a tela de antes"></textarea>
+          </fieldset>
+          <fieldset class="command-group">
+            <legend>Teste</legend>
+            <p class="field-hint">Verifique como uma frase será entendida com as configurações acima, mesmo antes de salvar. O teste pelo microfone usa a Deepgram e mostra exatamente o que ela transcreveu.</p>
+            <div class="command-test-row"><input id="command-test-text" class="keywords-editor" type="text" placeholder="Digite uma frase" autocomplete="off" /><button id="command-test-button" type="button" class="button button-outline">Verificar</button></div>
+            <button id="command-test-microphone" type="button" class="button button-outline microphone-test">Testar com o microfone</button>
+            <div id="command-mic-status" class="field-hint" role="status"></div>
+            <div id="command-test-result" class="suggestion-result" role="status"></div>
+          </fieldset>
+          <div id="commands-status" class="commands-status" role="alert"></div>
+          <div class="commands-actions"><button id="close-commands" type="button" class="button button-outline">Cancelar</button><button id="save-commands" type="button" class="button button-primary">Salvar comandos</button></div>
+        </div>
+      </dialog>
       <div id="toast" class="toast" role="status"></div>
     </div>
-    <script src="./app.js?v=11" defer></script>
+    <script src="./app.js?v=12" defer></script>
   </body>
 </html>

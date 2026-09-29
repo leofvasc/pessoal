@@ -1,12 +1,12 @@
 # Slide Assistido
 
-Protótipo local para importar apresentações, preparar informações de cada tela e sugerir mudanças durante a fala. A versão 11 mantém uma apresentação de demonstração, aceita arquivos próprios e pode ser instalada no Windows.
+Protótipo local para importar apresentações, preparar informações de cada tela e sugerir mudanças durante a fala. A versão 12 mantém uma apresentação de demonstração, aceita arquivos próprios e pode ser instalada no Windows.
 
 ## Instalação no Windows
 
-Execute `SlideAssistido-Instalador-v11.exe`. A instalação é feita apenas para o usuário atual, em `%LOCALAPPDATA%\Programs\SlideAssistido`, e não pede senha de administrador. O instalador já contém o Python e todas as dependências; não é preciso instalar nada antes. Como o instalador não tem assinatura digital, o Windows SmartScreen pode exibir o aviso “O Windows protegeu o computador”; nesse caso, clique em “Mais informações” e em “Executar assim mesmo”.
+Execute `SlideAssistido-Instalador-v12.exe`. A instalação é feita apenas para o usuário atual, em `%LOCALAPPDATA%\Programs\SlideAssistido`, e não pede senha de administrador. O instalador já contém o Python e todas as dependências; não é preciso instalar nada antes. Como o instalador não tem assinatura digital, o Windows SmartScreen pode exibir o aviso “O Windows protegeu o computador”; nesse caso, clique em “Mais informações” e em “Executar assim mesmo”.
 
-O atalho “Slide Assistido” no menu Iniciar (e, se escolhido, na área de trabalho) abre uma janela preta com o servidor local e o navegador em `http://localhost:4174`. Mantenha a janela preta aberta durante o uso e feche-a para encerrar o programa. Clicar de novo no atalho com o programa aberto apenas reabre o navegador. Confirme “Protótipo local · versão 11” no alto.
+O atalho “Slide Assistido” no menu Iniciar (e, se escolhido, na área de trabalho) abre uma janela preta com o servidor local e o navegador em `http://localhost:4174`. Mantenha a janela preta aberta durante o uso e feche-a para encerrar o programa. Clicar de novo no atalho com o programa aberto apenas reabre o navegador. Confirme “Protótipo local · versão 12” no alto.
 
 As apresentações importadas ficam em `%LOCALAPPDATA%\SlideAssistido\user_data`, fora da pasta do programa, e são preservadas em atualizações e na desinstalação. O menu Iniciar tem o atalho “Pasta das apresentações”. Para trazer as apresentações de uma versão anterior (iniciada pelo arquivo `.bat`), copie o conteúdo da antiga pasta `user_data` para essa pasta com o programa fechado.
 
@@ -52,6 +52,8 @@ Uma sugestão recusada fica bloqueada pelo período configurado, e telas exibida
 
 Os comandos isolados “próximo slide”, “passe para o próximo slide” e “avance para a próxima tela” avançam uma posição na ordem normal. “Slide anterior” e “passe para o slide anterior” recuam uma posição. Já “volte para a tela anterior”, “voltar ao slide anterior” e “voltar um slide” recuperam a última tela do histórico, inclusive depois de um salto ou da navegação manual. Pequenas variações de tempo verbal e a divisão do comando em dois trechos finais são aceitas. Uma frase narrativa, como “no próximo slide veremos os resultados”, não é um comando.
 
+O botão “Comandos de voz”, na biblioteca e no painel de preparação, abre a tela de configuração dos três comandos: próximo slide, slide anterior e voltar ao histórico. Em cada um é possível cadastrar frases próprias, uma por linha, e desligar as frases padrão. As frases personalizadas valem para todas as apresentações, ficam no arquivo `voice_commands.json` da pasta de dados e têm prioridade sobre as padrão; por exemplo, “voltar um slide” pode ser cadastrada como slide anterior. Frases com menos de duas palavras e seis letras, frases iguais a respostas às sugestões e frases repetidas em comandos diferentes são recusadas. A tela permite verificar uma frase digitada ou falada antes de salvar. As frases personalizadas também são enviadas à Deepgram como termos prioritários de transcrição; se a Deepgram recusar esse recurso, a conexão é refeita sem ele.
+
 Os comandos de navegação são analisados antes de respostas às sugestões. Se houver sugestão aberta, “próximo slide” a fecha e avança normalmente, sem aceitar a tela sugerida; “sim, pode abrir” aceita a sugestão. Os comandos por voz exigem a transcrição da Deepgram ativa. A tecla D mostra ou oculta o diagnóstico técnico.
 
 Execute `node tests/voice-navigation.test.cjs` na pasta do aplicativo para verificar as frases reconhecidas, a separação de trechos e a navegação com sugestão aberta.
@@ -70,6 +72,6 @@ Na Deepgram, será necessário manter conta ativa, chave de API e saldo ou plano
 
 ## Limites desta versão
 
-A versão 11 continua sendo local, sem conta administrativa, HTTPS, sincronização entre aparelhos ou banco de dados. A implantação em `apresenta.plana.app` exigirá a arquitetura de produção descrita no planejamento.
+A versão 12 continua sendo local, sem conta administrativa, HTTPS, sincronização entre aparelhos ou banco de dados. A implantação em `apresenta.plana.app` exigirá a arquitetura de produção descrita no planejamento.
 
 O código próprio do protótipo está sob a licença Apache 2.0, incluída em `LICENSE`. A licença não transfere direitos sobre a marca, os arquivos de apresentações ou os comentários do usuário.
