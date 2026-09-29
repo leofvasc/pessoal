@@ -1,0 +1,487 @@
+{
+  "titulo": "ECA Digital e Decreto 12.880/2026",
+  "fonte": "ECA Digital e Decreto 12.880 - aula.pptx",
+  "pdf": "ECA_Digital_Decreto_12880_Aula.pdf",
+  "total_paginas": 34,
+  "nota_editorial": "Notas originais preservadas. Comentários adicionais são propostas para revisão do apresentador; teses controvertidas não constituem posição confirmada dele.",
+  "fontes_normativas": [
+    "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/lei/l15211.htm",
+    "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/decreto/d12880.htm"
+  ],
+  "telas": [
+    {
+      "pagina_pdf": 1,
+      "tema": "Apresentação e método",
+      "palavras_chave": [
+        "aula",
+        "ECA Digital",
+        "decreto",
+        "leitura articulada"
+      ],
+      "texto_visivel": "AULA · DIREITO DIGITAL\nECA Digital e o Decreto 12.880/2026\nLei nº 15.211, de 17 de setembro de 2025, e sua regulamentação: leitura articulada dispositivo a dispositivo\nProfessor Leonardo Vasconcelos\n16 de setembro de 2026",
+      "nota_original_pptx": "Abertura. Advertir a turma de que a apresentação segue a ordem dos dispositivos da Lei 15.211/2025 e que, sempre que o Decreto 12.880/2026 regulamentar o ponto, o texto regulamentar aparece ao lado, na mesma tela. Dispositivos que só existem no Decreto vêm isolados e sinalizados como tais.",
+      "comentario_adicional_proposto": "Apresentar a proposta da aula: ler o dispositivo legal, confrontar a regulamentação e separar texto normativo de interpretação. Perguntar que obrigações uma plataforma precisa implementar de fato.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 2,
+      "tema": "Âmbito e conceitos",
+      "palavras_chave": [
+        "incidência",
+        "conceitos",
+        "acesso provável"
+      ],
+      "texto_visivel": "I\nEIXO I\nÂmbito de incidência e definições\nLei nº 15.211/2025 — art. 1º, caput e parágrafo único; art. 2º, incisos V e VIII\n1",
+      "nota_original_pptx": "Primeiro eixo: a quem a lei se aplica e o vocabulário técnico que ela fixa. O conceito de 'acesso provável' é a chave de todo o sistema, porque desloca o critério do público-alvo declarado pelo fornecedor para o público realmente alcançado.",
+      "comentario_adicional_proposto": "Antecipar um problema prático: uma plataforma pode ser alcançada mesmo que declare não ter crianças como público-alvo. Essa hipótese será examinada nas próximas telas.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 3,
+      "tema": "Alcance da lei",
+      "palavras_chave": [
+        "extraterritorialidade",
+        "plataformas",
+        "produto digital",
+        "acesso provável"
+      ],
+      "texto_visivel": "EIXO I · ÂMBITO DE INCIDÊNCIA\n2\nAlcance material e extraterritorial da lei\nECA DIGITAL\nArt. 1º Esta Lei dispõe sobre a proteção de crianças e de adolescentes em ambientes digitais e aplica-se a todo produto ou serviço de tecnologia da informação direcionado a crianças e a adolescentes no País ou de acesso provável por eles, independentemente de sua localização, desenvolvimento, fabricação, oferta, comercialização e operação.\nArt. 1º, caput\nO dispositivo fixa dois recortes. No plano material, alcança todo produto ou serviço de tecnologia da informação, e não apenas redes sociais. No plano espacial, a cláusula final afasta a alegação de que a empresa está sediada no exterior: o que importa é o alcance do serviço no território nacional, na mesma lógica do art. 3º da LGPD.",
+      "nota_original_pptx": "Art. 1º da Lei 15.211/2025. Explorar que o critério de incidência não é a destinação declarada pelo fornecedor, mas o acesso provável — conceito definido no parágrafo único. A extraterritorialidade é expressa e abrange desenvolvimento, fabricação, oferta, comercialização e operação.",
+      "comentario_adicional_proposto": "Comparar o serviço oferecido por empresa sediada fora do Brasil com o serviço acessado aqui. O local da sede, isoladamente, não encerra a análise de incidência.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 4,
+      "tema": "Acesso provável",
+      "palavras_chave": [
+        "atratividade",
+        "facilidade de acesso",
+        "risco",
+        "critérios cumulativos"
+      ],
+      "texto_visivel": "EIXO I · ÂMBITO DE INCIDÊNCIA\n3\nO que caracteriza o acesso provável\nParágrafo único. Para os fins desta Lei, considera-se acesso provável por crianças e adolescentes as seguintes situações:\nI\nsuficiente probabilidade de uso e atratividade do produto ou serviço de tecnologia da informação por crianças e adolescentes;\nII\nconsiderável facilidade ao acesso e utilização do produto ou serviço de tecnologia da informação por crianças e adolescentes; e\nIII\nsignificativo grau de risco à privacidade, à segurança ou ao desenvolvimento biopsicossocial de crianças e de adolescentes, especialmente no caso de produtos ou serviços que tenham por finalidade permitir a interação social e o compartilhamento de informações em larga escala entre usuários em ambiente digital.\nAs três situações funcionam como indicadores concorrentes de probabilidade de acesso por crianças e adolescentes.",
+      "nota_original_pptx": "Art. 1º, parágrafo único. Discutir com a turma se os incisos são cumulativos ou alternativos: a conjunção 'e' ao fim do inciso II sugere cumulatividade, mas a leitura sistemática com o caput e com o princípio da proteção integral recomenda tratá-los como indicadores concorrentes. Ponto de controvérsia interpretativa relevante para a prática.",
+      "comentario_adicional_proposto": "Propor à turma a leitura das três situações. A conjunção final pode sustentar interpretação cumulativa; a leitura como indicadores alternativos é uma tese a ser defendida, não uma conclusão literal inequívoca.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 5,
+      "tema": "Perfilamento e supervisão",
+      "palavras_chave": [
+        "perfilamento",
+        "dados pessoais",
+        "inferência",
+        "supervisão parental"
+      ],
+      "texto_visivel": "EIXO I · DEFINIÇÕES LEGAIS\n4\nDuas definições que estruturam o regime\nART. 2º, V\nPerfilamento\nV – perfilamento: qualquer forma de tratamento de dados pessoais, automatizada ou não, para avaliar certos aspectos de uma pessoa natural, com o objetivo de classificá-la em grupo ou perfil de modo a fazer inferências sobre seu comportamento, situação econômica, saúde, preferências pessoais, interesses, desejos de consumo, localização geográfica, deslocamentos, posições políticas ou outras características assemelhadas;\nART. 2º, VIII\nMecanismo de supervisão parental\nVIII – mecanismo de supervisão parental: conjunto de configurações, de ferramentas e de salvaguardas tecnológicas integradas a produtos ou serviços de tecnologia da informação direcionados a crianças e a adolescentes ou de acesso provável por eles que possibilitem aos pais ou responsáveis legais supervisionar, limitar e gerenciar o uso do serviço, o conteúdo acessado e o tratamento de dados pessoais realizado;\nAs duas definições são pressupostos das vedações dos arts. 22 e 26 e dos deveres dos arts. 17 e 18.",
+      "nota_original_pptx": "Art. 2º, V e VIII. O conceito de perfilamento é mais amplo que o de decisão automatizada da LGPD, pois abrange tratamento 'automatizado ou não'. Já o mecanismo de supervisão parental é definido por função — supervisionar, limitar e gerenciar — e não por tecnologia específica, o que impede que o fornecedor alegue inexistência de solução técnica padronizada.",
+      "comentario_adicional_proposto": "Diferenciar a classificação de pessoas em perfis da mera exibição de conteúdo. Na supervisão, discutir quais controles permitem proteger sem eliminar a autonomia progressiva do adolescente.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 6,
+      "tema": "Fundamentos",
+      "palavras_chave": [
+        "proteção integral",
+        "melhor interesse",
+        "autonomia progressiva"
+      ],
+      "texto_visivel": "II\nEIXO II\nFundamentos da utilização\nLei nº 15.211/2025 — art. 4º, incisos I a IX\n5",
+      "nota_original_pptx": "Segundo eixo: a base axiológica. Os fundamentos do art. 4º funcionam como vetores de interpretação de todos os deveres concretos que vêm adiante e como parâmetro de controle da atuação do regulador.",
+      "comentario_adicional_proposto": "Explicar que os princípios orientam a solução de conflitos concretos. Deixar uma pergunta para o caso de controle parental: proteger até que ponto e com qual grau de informação ao adolescente?",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 7,
+      "tema": "Fundamentos em tensão",
+      "palavras_chave": [
+        "acessibilidade",
+        "autonomia",
+        "proteção",
+        "educação digital"
+      ],
+      "texto_visivel": "EIXO II · FUNDAMENTOS\n6\nOs nove fundamentos do art. 4º\nArt. 4º A utilização de produtos ou serviços de tecnologia da informação por crianças e adolescentes tem como fundamentos:\nI\na garantia de sua proteção integral;\nII\na prevalência absoluta de seus interesses;\nIII\na condição peculiar de pessoa em desenvolvimento biopsicossocial;\nIV\na segurança contra intimidação, exploração, abuso, ameaça e outras formas de violência;\nV\no respeito à autonomia e ao desenvolvimento progressivo do indivíduo;\nVI\na proteção contra a exploração comercial;\nVII\na observância dos princípios estabelecidos na Lei nº 13.146, de 6 de julho de 2015 (Estatuto da Pessoa com Deficiência);\nVIII\na promoção da educação digital, com foco no desenvolvimento da cidadania e do senso crítico para o uso seguro e responsável da tecnologia; e\nIX\na transparência e a responsabilidade no tratamento de dados pessoais de crianças e de adolescentes.\nSão normas de interpretação e integração: nenhum dever posterior pode ser lido de modo a esvaziá-los.",
+      "nota_original_pptx": "Art. 4º. Destacar a tensão entre os incisos II (prevalência absoluta dos interesses) e V (autonomia e desenvolvimento progressivo): a proteção não pode converter-se em tutela que anule a autonomia do adolescente. O inciso VII incorpora expressamente o Estatuto da Pessoa com Deficiência, impondo acessibilidade às ferramentas.",
+      "comentario_adicional_proposto": "Explorar a tensão entre a prevalência dos interesses infantojuvenis e o desenvolvimento da autonomia. A acessibilidade não se limita ao texto jurídico, alcançando também interfaces e ferramentas.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 8,
+      "tema": "Prevenção desde a concepção",
+      "palavras_chave": [
+        "design seguro",
+        "riscos",
+        "inteligência artificial"
+      ],
+      "texto_visivel": "III\nEIXO III\nPrevenção de riscos e segurança desde a concepção\nLei nº 15.211/2025 — art. 6º, caput e § 2º; art. 8º, incisos III a V · Decreto nº 12.880/2026 — art. 9º; art. 11\n7",
+      "nota_original_pptx": "Terceiro eixo: o dever de desenho seguro. Aqui aparece o primeiro grande complemento regulamentar (art. 9º do Decreto) e o primeiro dispositivo autônomo do Decreto (art. 11, sobre inteligência artificial generativa).",
+      "comentario_adicional_proposto": "Anunciar a passagem das declarações de princípio para deveres de projeto e operação. Distinguir uma medida adotada antes do lançamento de uma correção feita depois de danos conhecidos.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 9,
+      "tema": "Riscos e recomendação",
+      "palavras_chave": [
+        "recomendação algorítmica",
+        "exposição",
+        "contato",
+        "mitigação"
+      ],
+      "texto_visivel": "EIXO III · PREVENÇÃO DE RISCOS\n8\nDever de prevenir e mitigar riscos desde a concepção\nECA DIGITAL\nArt. 6º Os fornecedores de produtos ou serviços de tecnologia da informação direcionados a crianças e a adolescentes ou de acesso provável por eles deverão tomar medidas razoáveis desde a concepção e ao longo da operação de suas aplicações, com o objetivo de prevenir e mitigar riscos de acesso, exposição, recomendação ou facilitação de contato com os seguintes conteúdos, produtos ou práticas: I – exploração e abuso sexual; II – violência física, intimidação sistemática virtual e assédio; III – indução, incitação, instigação ou auxílio, por meio de instruções ou orientações, a práticas ou comportamentos que levem a danos à saúde física ou mental de crianças e de adolescentes, tais como violência física ou assédio psicológico a outras crianças e adolescentes, uso de substâncias que causem dependência química ou psicológica, autodiagnóstico e automedicação, automutilação e suicídio; IV – promoção e comercialização de jogos de azar, apostas de quota fixa, loterias, produtos de tabaco, bebidas alcoólicas, narcóticos ou produtos de comercialização proibida a crianças e a adolescentes; V – práticas publicitárias predatórias, injustas ou enganosas ou outras práticas conhecidas por acarretarem danos financeiros a crianças e a adolescentes; e VI – conteúdo pornográfico.\nArt. 6º, caput e incisos I a VI\nO dever é de meio qualificado — 'medidas razoáveis' — mas incide desde a concepção e permanece por toda a operação. O verbo 'recomendação' alcança diretamente a curadoria algorítmica: recomendar é conduta própria do fornecedor, e não conteúdo de terceiro.",
+      "nota_original_pptx": "Art. 6º, caput e incisos I a VI. Chamar atenção para os quatro verbos de risco: acesso, exposição, recomendação e facilitação de contato. A inclusão da recomendação desloca o debate sobre responsabilidade civil, pois dialoga com a discussão em torno do art. 19 do Marco Civil da Internet após o julgamento do STF.",
+      "comentario_adicional_proposto": "Usar o exemplo de um sistema de recomendações que amplia o alcance de conteúdo inadequado. A referência à responsabilidade por recomendação deve ser tratada como debate jurídico, sem equivaler automaticamente a responsabilidade objetiva.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 10,
+      "tema": "Intimidação sistemática",
+      "palavras_chave": [
+        "cyberbullying",
+        "denúncia",
+        "acolhimento",
+        "educação digital"
+      ],
+      "texto_visivel": "EIXO III · PREVENÇÃO DE RISCOS\n9\nPolíticas contra a intimidação sistemática virtual\nECA DIGITAL\nArt. 6º, § 2º Entre as medidas de prevenção previstas no caput deste artigo, incluem-se políticas claras, eficazes e adequadas à legislação brasileira de prevenção à intimidação sistemática virtual e a outras formas de assédio na internet, com mecanismos de apoio adequado às vítimas, bem como o desenvolvimento e a disponibilização de programas educativos de conscientização direcionados a crianças, adolescentes, pais, educadores, funcionários e equipes de suporte sobre os riscos e as formas de prevenção e de enfrentamento dessas práticas, nos termos de regulamento.\nArt. 6º, § 2º\nO parágrafo agrega ao dever de prevenção duas obrigações positivas: apoio adequado às vítimas e programas educativos dirigidos a crianças, adolescentes, pais, educadores, funcionários e equipes de suporte. A remissão final a regulamento é o gancho normativo do Decreto 12.880/2026.",
+      "nota_original_pptx": "Art. 6º, § 2º. O dispositivo articula a Lei 15.211/2025 com a Lei 13.185/2015, que institui o Programa de Combate à Intimidação Sistemática. Note-se que o dever de conscientização é simultaneamente interno e externo à plataforma.",
+      "comentario_adicional_proposto": "Pedir exemplos concretos de apoio à vítima e de orientação a moderadores. Uma política publicada sem canal funcional e sem capacidade de resposta não resolve o risco apresentado.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 11,
+      "tema": "Uso compulsivo",
+      "palavras_chave": [
+        "rolagem infinita",
+        "reprodução automática",
+        "recompensas",
+        "notificações"
+      ],
+      "texto_visivel": "EIXO III · USO COMPULSIVO\n10\nUso compulsivo: o dever legal e sua densificação regulamentar\nECA DIGITAL\nDECRETO 12.880/2026\nArt. 8º, III a V Art. 8º Os fornecedores de produtos ou serviços de tecnologia da informação direcionados a crianças e a adolescentes ou de acesso provável por eles deverão: III – oferecer sistemas e processos projetados para impedir que crianças e adolescentes encontrem, por meio do produto ou serviço, conteúdos ilegais e pornográficos, bem como outros conteúdos manifestamente inadequados à sua faixa etária, conforme as normas de classificação indicativa e a legislação aplicável; IV – desenvolver desde a concepção e adotar por padrão configurações que evitem o uso compulsivo de produtos ou serviços por crianças e adolescentes; e V – informar extensivamente a todos os usuários sobre a faixa etária indicada para o produto ou serviço no momento do acesso, conforme estabelecido pela política de classificação indicativa.\nArt. 9º, caput e parágrafo único Art. 9º Os fornecedores de produtos ou serviços de tecnologia da informação direcionados a crianças e adolescentes ou de acesso provável por eles deverão implementar mecanismos para evitar o seu uso excessivo, problemático ou compulsivo, nos termos do disposto nos art. 8º, caput, inciso IV, art. 17, § 4º, inciso II, e art. 18, § 2º, da Lei nº 15.211, de 17 de setembro de 2025. Parágrafo único. Para fins do disposto neste Decreto, consideram-se mecanismos de incentivo ao uso excessivo, problemático ou compulsivo: I - a ocultação de pontos naturais de parada; II - o acionamento de novos conteúdos sem solicitação; III - a oferta de recompensas pelo tempo de uso; e IV - o aparecimento de notificações excessivas.\nO Decreto converte um conceito aberto em quatro mecanismos identificáveis, o que torna o dever verificável e a infração demonstrável.",
+      "nota_original_pptx": "Art. 8º, III a V, da Lei, e art. 9º do Decreto. O parágrafo único do art. 9º é o coração operacional: rolagem infinita (ocultação de pontos naturais de parada), reprodução automática (acionamento de novos conteúdos sem solicitação), gamificação por tempo de uso e notificações excessivas. Cada item corresponde a um padrão de design persuasivo documentado na literatura sobre dark patterns.",
+      "comentario_adicional_proposto": "Comparar pontos naturais de parada com rolagem infinita e reprodução automática. Distinguir características potencialmente problemáticas do juízo contextual sobre excesso, risco e medidas proporcionais.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 12,
+      "tema": "Inteligência artificial conversacional",
+      "palavras_chave": [
+        "chatbot",
+        "modelo de linguagem",
+        "caráter sintético",
+        "manipulação",
+        "risco algorítmico"
+      ],
+      "texto_visivel": "EIXO III · INTELIGÊNCIA ARTIFICIAL\n11\nModelos de linguagem e agentes conversacionais\nDECRETO 12.880/2026\nArt. 11. Os fornecedores de produtos ou serviços de tecnologia da informação direcionados a crianças e adolescentes ou de acesso provável por eles capazes de geração de conteúdo e interação com usuários a partir de instruções em linguagem natural, incluídos modelos de linguagem, agentes conversacionais e interfaces similares, deverão, na consecução do melhor interesse da criança e do adolescente: I - ser transparentes na interação de crianças e adolescentes quanto a seu caráter sintético e automatizado; II - prevenir a manipulação comportamental de crianças e adolescentes; III - avaliar o risco algorítmico à segurança e à saúde de crianças e adolescentes; e IV - implementar salvaguardas à proteção do desenvolvimento físico, mental e psicossocial de crianças e adolescentes.\nQuatro deveres específicos: transparência sobre o caráter sintético, prevenção de manipulação, avaliação de risco algorítmico e salvaguardas de desenvolvimento.",
+      "nota_original_pptx": "Art. 11 do Decreto 12.880/2026. Dispositivo autônomo: não há, nas anotações da Lei, artigo que trate especificamente de IA generativa. O Decreto colmata a lacuna a partir da cláusula geral do melhor interesse. Discutir os limites da competência regulamentar: o art. 84, IV, da Constituição autoriza o decreto de execução, não a inovação primária. A defesa da constitucionalidade do art. 11 passa por demonstrar que os quatro deveres são desdobramentos dos arts. 4º, 6º e 8º da Lei.",
+      "comentario_adicional_proposto": "Apresentar um exemplo de agente que se faz passar por pessoa ou estimula dependência emocional. Debater se os deveres regulamentares concretizam a lei ou ultrapassam sua função executiva; não apresentar a resposta como pacífica.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 13,
+      "tema": "Verificação etária",
+      "palavras_chave": [
+        "idade",
+        "conteúdo impróprio",
+        "privacidade",
+        "autenticação"
+      ],
+      "texto_visivel": "IV\nEIXO IV\nConteúdo impróprio e verificação de idade\nLei nº 15.211/2025 — art. 9º, caput e §§ 1º a 3º · Decreto nº 12.880/2026 — art. 14; art. 17\n12",
+      "nota_original_pptx": "Quarto eixo: o ponto mais sensível da lei, porque a verificação confiável de idade tensiona a proteção da criança e a privacidade do usuário adulto.",
+      "comentario_adicional_proposto": "Formular o conflito central do eixo: verificar idade com confiabilidade e preservar a privacidade de todas as pessoas que acessam o serviço.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 14,
+      "tema": "Verificação a cada acesso",
+      "palavras_chave": [
+        "verificação de idade",
+        "autodeclaração",
+        "ocultação",
+        "desbloqueio"
+      ],
+      "texto_visivel": "EIXO IV · VERIFICAÇÃO DE IDADE\n13\nAcesso a conteúdo impróprio e verificação confiável de idade\nECA DIGITAL\nDECRETO 12.880/2026\nArt. 9º, caput e § 1º Art. 9º Os fornecedores de produtos ou serviços de tecnologia da informação que disponibilizarem conteúdo, produto ou serviço cuja oferta ou acesso seja impróprio, inadequado ou proibido para menores de 18 (dezoito) anos de idade deverão adotar medidas eficazes para impedir o seu acesso por crianças e adolescentes no âmbito de seus serviços e produtos. § 1º Para dar efetividade ao disposto no caput, deverão ser adotados mecanismos confiáveis de verificação de idade a cada acesso do usuário ao conteúdo, produto ou serviço de que trata o caput deste artigo, vedada a autodeclaração.\nArt. 17, caput e incisos I e II Art. 17. O fornecedor de produtos ou serviços de tecnologia da informação que permita a visualização de imagens ou vídeos de conteúdo pornográfico deverá, quando o usuário não estiver cadastrado, quando a idade não for verificada ou quando a conta for operada por criança ou adolescente: I - ocultar, desfocar ou não exibir, por padrão, conteúdo pornográfico; ou II - exigir verificação de idade para desbloqueio, vedada a mera autodeclaração.\nA Lei exige verificação a cada acesso e veda a autodeclaração; o Decreto admite alternativa menos invasiva — ocultar ou desfocar por padrão.",
+      "nota_original_pptx": "Art. 9º, caput e § 1º, da Lei, e art. 17 do Decreto. Ponto crítico: a Lei parece impor verificação a cada acesso; o Decreto oferece a alternativa do inciso I, que dispensa a verificação enquanto o conteúdo não for desbloqueado. Há aqui um problema de hierarquia — o Decreto amplia ou apenas operacionaliza? A leitura conciliadora é que a verificação só é exigível no momento do acesso efetivo ao conteúdo, e não da mera navegação.",
+      "comentario_adicional_proposto": "Separar a visualização da página, a exibição desfocada e o desbloqueio do conteúdo. A conciliação entre a exigência legal e a alternativa do decreto é uma interpretação, não dispensa geral de verificação.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 15,
+      "tema": "Condições de disponibilização",
+      "palavras_chave": [
+        "conteúdo inadequado",
+        "classificação indicativa",
+        "segurança por padrão",
+        "supervisão"
+      ],
+      "texto_visivel": "EIXO IV · CONTEÚDO IMPRÓPRIO\n14\nDefinição de conteúdo impróprio e condições cumulativas\nECA DIGITAL\nDECRETO 12.880/2026\n§ 2º Para os fins desta Lei, consideram-se impróprios ou inadequados para crianças e adolescentes os produtos, serviços ou conteúdos de tecnologia da informação que contenham material pornográfico, ou quaisquer outros vedados pela legislação vigente. § 3º Os provedores de aplicações de internet que disponibilizarem conteúdo pornográfico deverão impedir a criação de contas ou de perfis por crianças e adolescentes no âmbito de seus serviços.\nArt. 14. A disponibilização de conteúdo, produto ou serviço impróprio ou inadequado a crianças e adolescentes, nos termos do disposto no art. 9º da Lei nº 15.211, de 17 de setembro de 2025, ficará condicionada, cumulativamente, à: II - adoção de medidas técnicas e organizacionais de segurança por padrão, desde a concepção, proporcionais aos riscos identificados para faixa etária; e III - disponibilização de ferramentas efetivas de supervisão parental, com funcionalidades de bloqueio configuráveis pelos responsáveis legais e demais métodos que visem a proporcionar segurança digital a crianças e adolescentes, nos termos do disposto nos art. 17 e art. 18 da Lei nº 15.211, de 17 de setembro de 2025.\nO Decreto condiciona a própria disponibilização do conteúdo impróprio a requisitos cumulativos de segurança por padrão e de supervisão parental efetiva.",
+      "nota_original_pptx": "Art. 9º, §§ 2º e 3º, da Lei, e art. 14, II e III, do Decreto. O § 3º é mais rigoroso que o caput: em relação a conteúdo pornográfico, não basta impedir o acesso, é preciso impedir a criação de contas ou perfis. O art. 14 do Decreto usa a expressão 'cumulativamente', de modo que a falha em qualquer dos requisitos torna a disponibilização irregular por inteiro.",
+      "comentario_adicional_proposto": "A tela reproduz apenas os incisos II e III do decreto. Acrescentar oralmente que o inciso I também integra os requisitos cumulativos e trata da observância da classificação indicativa quando aplicável.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 16,
+      "tema": "Supervisão parental",
+      "palavras_chave": [
+        "informação",
+        "ferramentas",
+        "funcionalidades",
+        "autonomia"
+      ],
+      "texto_visivel": "V\nEIXO V\nSupervisão parental\nLei nº 15.211/2025 — art. 16; art. 17, incisos I a IV e § 4º; art. 18, incisos I a VI\n15",
+      "nota_original_pptx": "Quinto eixo: o regime da supervisão parental, construído em três degraus — informação (art. 16), ferramentas (art. 17) e funcionalidades mínimas (art. 18).",
+      "comentario_adicional_proposto": "Introduzir a distinção entre fornecer informação, disponibilizar ferramentas e assegurar funções efetivas. Retomar a autonomia progressiva ao avaliar o alcance da supervisão.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 17,
+      "tema": "Informação prévia",
+      "palavras_chave": [
+        "riscos",
+        "privacidade",
+        "LGPD",
+        "crianças e adolescentes"
+      ],
+      "texto_visivel": "EIXO V · SUPERVISÃO PARENTAL\n16\nDever de informação sobre riscos e medidas de segurança\nECA DIGITAL\nArt. 16. Os fornecedores de produtos ou serviços de tecnologia da informação direcionados a crianças e a adolescentes ou de acesso provável por eles deverão disponibilizar a pais, responsáveis legais, crianças e adolescentes, com acesso de forma independente da aquisição do produto, informações sobre os riscos e as medidas de segurança adotadas para esse público, incluídas a privacidade e a proteção de dados, em conformidade com o disposto no art. 14 da Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de Dados Pessoais).\nArt. 16\nA informação deve estar disponível antes e independentemente da aquisição, o que impede condicioná-la ao cadastro ou à contratação. A remissão ao art. 14 da LGPD é decisiva: aquele dispositivo exige consentimento específico e destacado de um dos pais e linguagem adequada ao entendimento infantil.",
+      "nota_original_pptx": "Art. 16. Destacar que o destinatário da informação é duplo: responsáveis e também as próprias crianças e adolescentes. A expressão 'de forma independente da aquisição do produto' significa que a informação precisa estar acessível ao público em geral, e não apenas ao usuário já contratante.",
+      "comentario_adicional_proposto": "Distinguir informação compreensível para o responsável e para a própria pessoa menor de idade. Evitar tratar o consentimento parental da LGPD como requisito indistinto para todo tratamento de dados de adolescentes.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 18,
+      "tema": "Ferramentas por padrão",
+      "palavras_chave": [
+        "tempo de uso",
+        "configurações",
+        "proteção por padrão",
+        "supervisão"
+      ],
+      "texto_visivel": "EIXO V · SUPERVISÃO PARENTAL\n17\nDeveres do fornecedor quanto às ferramentas de supervisão\nECA DIGITAL\nArt. 17. Os fornecedores de produtos ou serviços de tecnologia da informação direcionados a crianças e a adolescentes ou de acesso provável por eles deverão: I – disponibilizar configurações e ferramentas acessíveis e fáceis de usar que apoiem a supervisão parental, considerados a tecnologia disponível e a natureza e o propósito do produto ou serviço; II – fornecer, em local de fácil acesso, informações aos pais ou responsáveis legais sobre as ferramentas existentes para o exercício da supervisão parental; III – exibir aviso claro e visível quando as ferramentas de supervisão parental estiverem em vigor e sobre quais configurações ou controles foram aplicados; e IV – oferecer funcionalidades que permitam limitar e monitorar o tempo de uso do produto ou serviço. § 4º As configurações-padrão das ferramentas de supervisão parental deverão adotar o mais alto nível de proteção disponível [...]\nArt. 17, I a IV, e § 4º\nO inciso I traz cláusula de proporcionalidade que abre espaço para modulação, mas não para inércia. O § 4º consagra a proteção máxima por padrão: o ônus de reduzir o nível de proteção recai sobre quem pretende reduzi-lo.",
+      "nota_original_pptx": "Art. 17, incisos I a IV, e § 4º. Trabalhar a diferença entre disponibilizar a ferramenta (inciso I), informar sobre ela (inciso II), sinalizar que está ativa (inciso III) e permitir o controle de tempo de uso (inciso IV). O § 4º é a expressão do privacy by default no regime brasileiro de proteção da infância digital.",
+      "comentario_adicional_proposto": "Mostrar a diferença entre oferecer uma ferramenta e deixá-la efetivamente acessível e ativa. Perguntar quem pode reduzir uma proteção e quais avisos devem acompanhar a mudança.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 19,
+      "tema": "Funcionalidades mínimas",
+      "palavras_chave": [
+        "conta",
+        "compras",
+        "adultos",
+        "tempo de uso",
+        "português"
+      ],
+      "texto_visivel": "EIXO V · SUPERVISÃO PARENTAL\n18\nO que as ferramentas devem permitir aos responsáveis\nArt. 18. As ferramentas de supervisão parental deverão permitir aos pais e responsáveis legais:\nI\nvisualizar, configurar e gerenciar as opções de conta e privacidade da criança ou do adolescente;\nII\nrestringir compras e transações financeiras;\nIII\nidentificar os perfis de adultos com os quais a criança ou o adolescente se comunica;\nIV\nacessar métricas consolidadas do tempo total de uso do produto ou serviço;\nV\nativar ou desativar salvaguardas por meio de controles acessíveis e adequados;\nVI\ndispor de informações e de opções de controle em língua portuguesa.\nAs seis funcionalidades descrevem o conteúdo mínimo do dever, e não o seu teto.",
+      "nota_original_pptx": "Art. 18, I a VI. Observar a tensão entre o inciso III — identificar os perfis de adultos com quem a criança se comunica — e a privacidade do adolescente e de terceiros. O inciso VI, sobre língua portuguesa, é dispositivo de efetividade: ferramenta em idioma estrangeiro equivale, na prática, a ferramenta inexistente.",
+      "comentario_adicional_proposto": "Aplicar os incisos a um caso: uma conta infantil em jogo que permite compras e conversa com adultos. Considerar privacidade e proporcionalidade no acesso às informações sobre contatos.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 20,
+      "tema": "Jogos eletrônicos",
+      "palavras_chave": [
+        "jogos",
+        "loot boxes",
+        "interações",
+        "classificação indicativa"
+      ],
+      "texto_visivel": "VI\nEIXO VI\nJogos eletrônicos\nLei nº 15.211/2025 — art. 20; art. 21, caput e parágrafo único · Decreto nº 12.880/2026 — art. 23\n19",
+      "nota_original_pptx": "Sexto eixo: o regime dos jogos eletrônicos, com a vedação das caixas de recompensa e a articulação com o Marco Legal dos Jogos Eletrônicos (Lei 14.852/2024).",
+      "comentario_adicional_proposto": "Apresentar as duas questões do eixo: recompensa aleatória e comunicação entre usuários. O desenho técnico do jogo define como essas obrigações aparecerão.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 21,
+      "tema": "Caixas de recompensa",
+      "palavras_chave": [
+        "loot boxes",
+        "verificação de idade",
+        "bloqueio da função"
+      ],
+      "texto_visivel": "EIXO VI · JOGOS ELETRÔNICOS\n20\nCaixas de recompensa: vedação e controle de acesso\nECA DIGITAL\nDECRETO 12.880/2026\nArt. 20. São vedadas as caixas de recompensa (loot boxes) oferecidas em jogos eletrônicos direcionados a crianças e a adolescentes ou de acesso provável por eles, nos termos da respectiva classificação indicativa.\nArt. 23. Fornecedores de jogos eletrônicos com caixas de recompensa (loot boxes) deverão realizar a verificação de idade dos usuários, nos termos do disposto no art. 20 da Lei nº 15.211, de 17 de setembro de 2025, de modo a impedir o acesso a essa funcionalidade por crianças e adolescentes.\nA vedação da Lei é dirigida ao jogo; o dever do Decreto é dirigido à funcionalidade.",
+      "nota_original_pptx": "Art. 20 da Lei e art. 23 do Decreto. A distinção é relevante: o art. 20 veda a oferta de loot boxes em jogos direcionados a crianças e adolescentes ou de acesso provável por eles; o art. 23 impõe verificação de idade a qualquer fornecedor de jogo com essa funcionalidade, inclusive naqueles não destinados ao público infantojuvenil. O fundamento é a equiparação funcional entre a caixa de recompensa e a aposta de quota fixa, já sinalizada pelo art. 6º, IV, da Lei.",
+      "comentario_adicional_proposto": "Distinguir o jogo da funcionalidade. O § 1º do decreto também admite versão sem caixas de recompensa ou bloqueio total por padrão da funcionalidade, hipótese que dispensa a verificação de idade; esse detalhe não aparece na tela.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 22,
+      "tema": "Interações em jogos",
+      "palavras_chave": [
+        "chat",
+        "áudio",
+        "vídeo",
+        "consentimento",
+        "moderação"
+      ],
+      "texto_visivel": "EIXO VI · JOGOS ELETRÔNICOS\n21\nFuncionalidades de interação entre usuários\nECA DIGITAL\nArt. 21. Os jogos eletrônicos direcionados a crianças e a adolescentes ou de acesso provável por eles que incluam funcionalidades de interação entre usuários por meio de mensagens de texto, áudio ou vídeo ou troca de conteúdos, de forma síncrona ou assíncrona, deverão observar integralmente as salvaguardas previstas no art. 16 da Lei nº 14.852, de 3 de maio de 2024, especialmente no que se refere à moderação de conteúdos, à proteção contra contatos prejudiciais e à atuação parental sobre os mecanismos de comunicação. Parágrafo único. Os jogos de que trata o caput deste artigo deverão, por padrão, limitar as funcionalidades de interação a usuários, de modo a assegurar o consentimento dos pais ou responsáveis legais.\nArt. 21, caput e parágrafo único\nA interação vem desligada por padrão: o consentimento dos responsáveis é condição de ativação, e não causa de bloqueio posterior. A remissão ao art. 16 da Lei 14.852/2024 incorpora integralmente as salvaguardas do Marco Legal dos Jogos Eletrônicos.",
+      "nota_original_pptx": "Art. 21, caput e parágrafo único. A expressão 'de forma síncrona ou assíncrona' alcança tanto chats em tempo real quanto mensagens diferidas e troca de itens. O parágrafo único inverte a lógica padrão do mercado: o silêncio do responsável significa restrição, e não liberação.",
+      "comentario_adicional_proposto": "Dar exemplos de mensagens síncronas e assíncronas. Perguntar o que deve acontecer antes de habilitar conversa por voz entre uma criança e outros usuários.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 23,
+      "tema": "Publicidade digital",
+      "palavras_chave": [
+        "publicidade infantil",
+        "perfilamento",
+        "influência",
+        "monetização"
+      ],
+      "texto_visivel": "VII\nEIXO VII\nPublicidade em meio digital\nLei nº 15.211/2025 — art. 22; art. 26 · Decreto nº 12.880/2026 — art. 31; art. 33; art. 34; art. 35\n22",
+      "nota_original_pptx": "Sétimo eixo: o regime publicitário. É o eixo em que o Decreto mais inova, com três dispositivos sem correspondente direto nas anotações da Lei.",
+      "comentario_adicional_proposto": "Separar publicidade direcionada por dados pessoais, exploração comercial da imagem da criança e conteúdos que a exponham de modo degradante.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 24,
+      "tema": "Perfilamento publicitário",
+      "palavras_chave": [
+        "segmentação",
+        "dados grupais",
+        "análise emocional",
+        "realidade aumentada"
+      ],
+      "texto_visivel": "EIXO VII · PUBLICIDADE\n23\nPerfilamento publicitário: a vedação e o dever de impedir\nECA DIGITAL\nDECRETO 12.880/2026\nArt. 22 Art. 22. Para além das demais disposições desta Lei, é vedada a utilização de técnicas de perfilamento para direcionamento de publicidade comercial a crianças e a adolescentes, bem como o emprego de análise emocional, de realidade aumentada, de realidade estendida e de realidade virtual para esse fim. Art. 26 Art. 26. É vedada a criação de perfis comportamentais de usuários crianças e adolescentes a partir da coleta e do tratamento de seus dados pessoais, inclusive daqueles obtidos nos processos de verificação de idade, bem como de dados grupais e coletivos, para fins de direcionamento de publicidade comercial.\nArt. 33 Art. 33. Os fornecedores de produtos ou serviços de tecnologia da informação que ofertem publicidade ou a sua distribuição para crianças e adolescentes deverão impedir o uso de técnicas e ferramentas de perfilamento, o emprego de análise emocional, de realidade aumentada, de realidade estendida e de realidade virtual, nos termos do disposto nos art. 22 e art. 26 da Lei nº 15.211, de 17 de setembro de 2025.\nA Lei veda a conduta; o Decreto a converte em dever ativo de impedir e alcança também quem apenas distribui a publicidade.",
+      "nota_original_pptx": "Arts. 22 e 26 da Lei e art. 33 do Decreto. Três observações: (1) o art. 22 alcança expressamente realidade aumentada, estendida e virtual, antecipando ambientes imersivos; (2) o art. 26 fecha a porta ao uso, para fins publicitários, dos próprios dados colhidos na verificação de idade, e alcança dados grupais e coletivos, o que atinge a publicidade contextual baseada em coortes; (3) o art. 33 desloca o sujeito passivo, pois 'ofertem publicidade ou a sua distribuição' abrange redes de anúncios e intermediários.",
+      "comentario_adicional_proposto": "Explicar que a vedação recai sobre perfilamento para publicidade comercial. O alcance de publicidade contextual baseada em grupos ou coortes depende da existência de perfil comportamental e merece análise específica, não equiparação automática.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 25,
+      "tema": "Publicidade abusiva",
+      "palavras_chave": [
+        "CDC",
+        "deficiência de julgamento",
+        "monetização",
+        "exposição vexatória"
+      ],
+      "texto_visivel": "EIXO VII · PUBLICIDADE\n24\nAbusividade publicitária e exposição degradante\nDECRETO 12.880/2026\nArt. 31 Art. 31. É considerada abusiva, nos termos do disposto no art. 37, § 2º, da Lei nº 8.078, de 11 de setembro de 1990, toda publicidade que se aproveite da deficiência de julgamento e experiência da criança em produtos e serviços de tecnologia da informação. Art. 35 Art. 35. É vedado aos fornecedores de produtos ou serviços de tecnologia da informação a veiculação, a monetização ou o impulsionamento de conteúdos que exponham crianças ou adolescentes a situações violadoras, vexatórias ou degradantes, nos termos do disposto nos art. 6º, § 1º, e art. 23 da Lei nº 15.211, de 17 de setembro de 2025.\nO art. 31 remete à abusividade do Código de Defesa do Consumidor; o art. 35 alcança a monetização e o impulsionamento, e não apenas a veiculação.",
+      "nota_original_pptx": "Arts. 31 e 35 do Decreto. O art. 31 não cria figura nova: qualifica, para o ambiente digital, a hipótese do art. 37, § 2º, do CDC, cuja redação é 'é abusiva, dentre outras, a publicidade [...] que se aproveite da deficiência de julgamento e experiência da criança'. A consequência prática é a incidência das sanções administrativas do art. 56 do CDC. O art. 35 remete a dispositivos da Lei que não constam destas anotações (art. 6º, § 1º, e art. 23) e por isso é aqui apresentado de forma autônoma.",
+      "comentario_adicional_proposto": "Usar um exemplo de publicidade que explora a inexperiência infantil. Em separado, discutir a participação econômica da plataforma na circulação de conteúdo vexatório.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 26,
+      "tema": "Monetização da rotina infantil",
+      "palavras_chave": [
+        "sharenting",
+        "influenciador mirim",
+        "autorização judicial",
+        "habitualidade"
+      ],
+      "texto_visivel": "EIXO VII · PUBLICIDADE\n25\nConteúdo monetizado que explora a imagem ou a rotina de criança\nDECRETO 12.880/2026\nArt. 34. Os fornecedores de produtos ou serviços de tecnologia da informação deverão requerer dos seus usuários autorização judicial regularmente emitida nos termos do disposto no art. 149 da Lei nº 8.069, de 13 de julho de 1990, quando se tratar de conteúdo monetizado ou impulsionado que explore, de forma habitual, a imagem ou a rotina de criança ou adolescente. § 1º Verificada a ausência da autorização judicial referida no caput, o fornecedor deverá retirar imediatamente o conteúdo.\nA exigência de alvará judicial do art. 149 do ECA é transposta para o ambiente digital, e o descumprimento gera dever de remoção imediata.",
+      "nota_original_pptx": "Art. 34, caput e § 1º, do Decreto — o dispositivo que enfrenta o fenômeno do sharenting comercial. O art. 149 do ECA atribui à autoridade judiciária a disciplina, por portaria ou alvará, da participação de criança e adolescente em espetáculos e certames. A transposição é engenhosa, mas discutível: o art. 149 pressupõe autorização individualizada e prévia, de difícil compatibilização com a lógica de produção contínua de conteúdo. Observar o elemento temporal 'de forma habitual': o conteúdo episódico não é alcançado.",
+      "comentario_adicional_proposto": "Investigar a habitualidade e o vínculo econômico antes de concluir pela exigência de autorização. Discutir as dificuldades de aplicar a autorização judicial à produção contínua de conteúdo, sem presumir que uma postagem episódica esteja automaticamente liberada por todas as normas.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 27,
+      "tema": "Redes sociais",
+      "palavras_chave": [
+        "contas de menores",
+        "responsável legal",
+        "versões apropriadas"
+      ],
+      "texto_visivel": "VIII\nEIXO VIII\nRedes sociais\nLei nº 15.211/2025 — art. 24, caput e § 1º · Decreto nº 12.880/2026 — art. 19\n26",
+      "nota_original_pptx": "Oitavo eixo: o regime das redes sociais, com a vinculação obrigatória de contas de menores de dezesseis anos à conta do responsável.",
+      "comentario_adicional_proposto": "Antecipar duas soluções regulatórias diferentes: vinculação de contas de pessoas até 16 anos e oferta de versões sem conteúdo proibido.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 28,
+      "tema": "Vinculação de contas",
+      "palavras_chave": [
+        "até dezesseis anos",
+        "responsável",
+        "verificação etária",
+        "versão sem conteúdo proibido"
+      ],
+      "texto_visivel": "EIXO VIII · REDES SOCIAIS\n27\nVinculação de contas e serviços inadequados\nECA DIGITAL\nDECRETO 12.880/2026\nArt. 24. No âmbito de seus serviços, os provedores de produtos ou serviços direcionados a crianças e a adolescentes ou de acesso provável por eles deverão garantir que usuários ou contas de crianças e de adolescentes de até 16 (dezesseis) anos de idade estejam vinculados ao usuário ou à conta de um de seus responsáveis legais. § 1º Caso seus serviços sejam impróprios ou inadequados para crianças e adolescentes, os provedores de redes sociais deverão adotar medidas adequadas e proporcionais para: I – informar de maneira clara, destacada e acessível a todos os usuários que seus serviços não são apropriados; II – monitorar e restringir, no limite de suas capacidades técnicas, a exibição de conteúdos que tenham como objetivo evidente atrair crianças e adolescentes; III – aprimorar, de maneira contínua, seus mecanismos de verificação de idade para identificar contas operadas por crianças e adolescentes.\nArt. 19. O serviço de rede social deverá, caso disponibilize conteúdo, produto ou serviço proibido para crianças e adolescentes: I - criar versões sem esse conteúdo, produto ou serviço ou publicidade relacionada a tais conteúdos, produtos ou serviços, hipótese em que fica dispensada a verificação de idade; ou II - adotar mecanismos efetivos de verificação de idade, nos termos estabelecidos pela ANPD, vedada a autodeclaração.\nA alternativa do inciso I do Decreto dispensa a verificação de idade e cria um incentivo regulatório à segregação de ambientes.",
+      "nota_original_pptx": "Art. 24, caput e § 1º, da Lei, e art. 19 do Decreto. O corte etário de dezesseis anos dialoga com o art. 4º do Código Civil e com a idade de consentimento digital adotada em outros ordenamentos. Observar que o § 1º, II, contém cláusula de esforço — 'no limite de suas capacidades técnicas' — que abre discussão probatória sobre o estado da técnica. O art. 19 do Decreto oferece caminho alternativo: criar versão expurgada do conteúdo proibido, hipótese em que a verificação de idade é dispensada.",
+      "comentario_adicional_proposto": "Distinguir serviços de acesso provável e redes sociais. A alternativa regulamentar de versão sem conteúdo proibido precisa ser lida junto com os demais deveres de proteção aplicáveis ao produto.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 29,
+      "tema": "Violação e remoção",
+      "palavras_chave": [
+        "conteúdo ilícito",
+        "reporte",
+        "preservação",
+        "retirada"
+      ],
+      "texto_visivel": "IX\nEIXO IX\nViolações graves, reporte e remoção\nLei nº 15.211/2025 — art. 27; art. 28, caput e parágrafo único; art. 29 · Decreto nº 12.880/2026 — art. 36; art. 39\n28",
+      "nota_original_pptx": "Nono e último eixo: o sistema de detecção, comunicação e remoção. É aqui que a lei mais se afasta do regime geral de responsabilidade do Marco Civil da Internet.",
+      "comentario_adicional_proposto": "Apresentar o caminho entre detecção de indícios, comunicação e retirada. Ressaltar que o tratamento do material exige procedimentos que preservem a prova sem prolongar sua exposição.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 30,
+      "tema": "Comunicação de conteúdo grave",
+      "palavras_chave": [
+        "exploração sexual",
+        "aliciamento",
+        "sequestro",
+        "Polícia Federal"
+      ],
+      "texto_visivel": "EIXO IX · VIOLAÇÕES GRAVES\n29\nRemoção e comunicação às autoridades competentes\nECA DIGITAL\nDECRETO 12.880/2026\nArt. 27 Art. 27. Os fornecedores de produtos ou serviços de tecnologia da informação disponíveis no território nacional deverão remover e comunicar os conteúdos de aparente exploração, de abuso sexual, de sequestro e de aliciamento detectados em seus produtos ou serviços, direta ou indiretamente, às autoridades nacionais e internacionais competentes, na forma de regulamento.\nArt. 36 Art. 36. A Polícia Federal é a autoridade competente para recebimento centralizado, processamento, triagem e gerenciamento dos relatórios de notificação de conteúdo com indícios de infrações penais e atos infracionais de aparente exploração, abuso sexual, sequestro e aliciamento de crianças e adolescentes, de que trata o art. 27, § 1º, da Lei nº 15.211, de 17 de setembro de 2025.\nA Lei cria o dever de detectar, remover e comunicar; o Decreto centraliza o fluxo na Polícia Federal.",
+      "nota_original_pptx": "Art. 27 da Lei e art. 36 do Decreto. O verbo 'detectados' pressupõe monitoramento ativo, o que é exceção relevante ao regime do art. 19 do Marco Civil. A comunicação deve alcançar autoridades nacionais e internacionais competentes, o que dialoga com o sistema de reporte do NCMEC norte-americano, hoje o principal repositório global de material de abuso sexual infantil.",
+      "comentario_adicional_proposto": "O dispositivo fala em conteúdos detectados direta ou indiretamente. Debater o alcance das medidas de detecção exigíveis, sem afirmar que ele institui um dever geral e irrestrito de monitoramento prévio.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 31,
+      "tema": "Centro de triagem e prova",
+      "palavras_chave": [
+        "reporte",
+        "metadados",
+        "cadeia de custódia",
+        "violência escolar"
+      ],
+      "texto_visivel": "EIXO IX · VIOLAÇÕES GRAVES\n30\nComunicação ao Centro Nacional de Triagem de Notificações\nDECRETO 12.880/2026\nDensificação do art. 27 da Lei nº 15.211/2025\nArt. 39. Para fins do disposto no art. 27 da Lei nº 15.211, de 17 de setembro de 2025, os fornecedores de produtos ou serviços de tecnologia da informação deverão comunicar ao Centro Nacional de Triagem de Notificações as violações que decorram de: I - identificação de conteúdos que evidenciem infrações penais ou atos infracionais relacionados à exploração, ao abuso ou ao aliciamento sexual de criança ou adolescente, nos termos estabelecidos na legislação penal e na legislação especial aplicável à proteção de crianças e adolescentes; II - sequestro e cárcere privado de criança ou adolescente, nos termos do disposto no Decreto-Lei nº 2.848, de 7 de dezembro de 1940 – Código Penal; e III - identificação de conteúdo ou interações que evidenciem aliciamento, recrutamento ou cooptação de criança ou adolescente para práticas que representem risco crível, iminente ou em andamento de lesão física grave ou morte, incluído tráfico de crianças e adolescentes ou atos preparatórios de violência extrema preordenada contra comunidade escolar ou grupos vulnerabilizados. § 1º Os fornecedores de produtos ou serviços de tecnologia da informação que identificarem material criminoso relacionado à exploração, ao abuso sexual, ao sequestro ou ao aliciamento de crianças e adolescentes deverão promover sua imediata remoção, preservando esse material e os demais conteúdos da conta, as informações do usuário e os metadados associados, para encaminhamento ao Centro Nacional de Triagem de Notificações ou à autoridade internacional competente, observados os requisitos e os prazos estabelecidos em ato do Ministério da Justiça e Segurança Pública.\nO § 1º impõe remoção imediata acompanhada de preservação integral de conteúdo, dados cadastrais e metadados.",
+      "nota_original_pptx": "Art. 39, incisos I a III, e § 1º, do Decreto. O inciso III é o mais amplo e o mais delicado: alcança atos preparatórios de violência extrema preordenada contra comunidade escolar, ou seja, ataques a escolas. A exigência de preservação do material e dos metadados é requisito de cadeia de custódia — sem ela, a remoção destrói a prova. Articular com o art. 158-A e seguintes do Código de Processo Penal.",
+      "comentario_adicional_proposto": "Relacionar remoção imediata à preservação de conteúdo, dados da conta e metadados. Perguntar como demonstrar posteriormente a autenticidade e a origem do material comunicado.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 32,
+      "tema": "Notificação de usuários",
+      "palavras_chave": [
+        "canal de denúncia",
+        "direitos da criança",
+        "autoridades competentes"
+      ],
+      "texto_visivel": "EIXO IX · REPORTE DE VIOLAÇÕES\n31\nMecanismos de notificação pelos usuários\nECA DIGITAL\nArt. 28. Os fornecedores de produtos ou serviços de tecnologia da informação direcionados a crianças e a adolescentes ou de acesso provável por eles deverão disponibilizar aos usuários mecanismos de notificações acerca de violações aos direitos de crianças e de adolescentes. Parágrafo único. Notificados acerca de violações aos direitos de crianças e de adolescentes no âmbito de seus serviços, os fornecedores deverão, quando for o caso, oficiar às autoridades competentes para instauração de investigação, nos termos de regulamento.\nArt. 28, caput e parágrafo único\nO dever não se esgota em receber a notificação: recebida, nasce a obrigação de oficiar às autoridades competentes. A expressão 'quando for o caso' confere margem de avaliação ao fornecedor, mas essa margem é sindicável — a decisão de não oficiar precisa ser motivada e documentada.",
+      "nota_original_pptx": "Art. 28, caput e parágrafo único. O mecanismo de notificação é dever de canal: precisa existir, ser acessível e funcionar. Comparar com o sistema de notificação previsto no art. 21 do Marco Civil da Internet, restrito a conteúdo de nudez e atos sexuais de caráter privado.",
+      "comentario_adicional_proposto": "Diferenciar disponibilização do canal de denúncia e encaminhamento à autoridade quando cabível. A afirmação de que toda decisão de não oficiar exige motivação documental pode ser boa prática, mas não está expressa nesse dispositivo.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 33,
+      "tema": "Retirada sem ordem judicial",
+      "palavras_chave": [
+        "Ministério Público",
+        "notificação",
+        "retirada",
+        "contestação",
+        "exceções"
+      ],
+      "texto_visivel": "EIXO IX · REPORTE DE VIOLAÇÕES\n32\nRemoção independentemente de ordem judicial\nArt. 29. Para atender ao princípio da proteção integral, é dever dos fornecedores de produtos ou serviços de tecnologia da informação direcionados a crianças e a adolescentes ou de acesso provável por eles proceder à retirada de conteúdo que viola direitos de crianças e de adolescentes assim que forem comunicados do caráter ofensivo da publicação pela vítima, por seus representantes, pelo Ministério Público ou por entidades representativas de defesa dos direitos de crianças e de adolescentes, independentemente de ordem judicial.\nLEI Nº 15.211/2025 — ART. 29\nO Ministério Público figura expressamente entre os legitimados a comunicar, o que dispensa a judicialização prévia e cria via administrativa direta de remoção.",
+      "nota_original_pptx": "Art. 29 — dispositivo de encerramento e provavelmente o mais impactante do conjunto. Institui regime de notificação e retirada para violação de direitos de crianças e adolescentes, afastando a exigência de ordem judicial que o art. 19 do Marco Civil da Internet estabelece como regra. Três pontos de debate: (1) a compatibilidade com a liberdade de expressão e o risco de remoção excessiva; (2) o rol de legitimados, que inclui a vítima, seus representantes, o Ministério Público e entidades de defesa; (3) a inexistência, na redação, de prazo expresso — 'assim que forem comunicados' é cláusula aberta que o regulamento e a jurisprudência precisarão densificar. Encerrar a aula com esta discussão.",
+      "comentario_adicional_proposto": "A tela transcreve apenas o caput. Explicar também que a notificação deve identificar tecnicamente o conteúdo e o notificante; a lei exclui desse procedimento conteúdos jornalísticos e submetidos a controle editorial, e prevê contestação em dispositivo seguinte.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    },
+    {
+      "pagina_pdf": 34,
+      "tema": "Encerramento",
+      "palavras_chave": [
+        "debate",
+        "revisão",
+        "dúvidas",
+        "aplicação prática"
+      ],
+      "texto_visivel": "professorleonardo.com.br · @leofvasconcelos",
+      "nota_original_pptx": "Tela de encerramento.",
+      "comentario_adicional_proposto": "Retomar o caso de uma plataforma usada por menores que oferece recomendações, mensagens, anúncios e denúncias. Convidar a turma a identificar obrigações diferentes para cada função.",
+      "status_comentario": "proposta_para_revisao_do_apresentador"
+    }
+  ]
+}

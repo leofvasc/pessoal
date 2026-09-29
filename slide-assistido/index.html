@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101b34" />
+    <title>Slide Assistido</title>
+    <link rel="icon" href="./assets/app-icon.png" />
+    <link rel="stylesheet" href="./styles.css?v=10" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <img class="wordmark" src="./assets/wordmark.png" alt="Slide Assistido" />
+        <div class="topbar-right">
+          <span class="local-badge"><i></i> Protótipo local · versão 10</span>
+          <button class="avatar" aria-label="Conta administrativa">LV</button>
+        </div>
+      </header>
+
+      <main id="library-view" class="library-view">
+        <section class="welcome">
+          <div class="eyebrow">SEU ESPAÇO DE APRESENTAÇÃO</div>
+          <h1>Apresentações</h1>
+          <p>Prepare suas telas e conduza a apresentação com controle manual.</p>
+        </section>
+
+        <section class="library-toolbar" aria-label="Biblioteca de apresentações">
+          <div>
+            <div class="section-title">Biblioteca <span class="count">01</span></div>
+            <div class="muted">Apresentações disponíveis neste protótipo</div>
+          </div>
+          <div class="toolbar-actions">
+            <label class="searchbox"><span>⌕</span><input id="search-input" placeholder="Buscar apresentação" /></label>
+            <button id="download-backup" class="button button-outline">Baixar backup</button>
+            <button id="new-presentation" class="button button-outline">＋ Nova apresentação</button>
+            <input id="file-import" type="file" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden />
+          </div>
+        </section>
+
+        <section id="presentation-grid" class="presentation-grid">
+          <article class="presentation-card">
+            <button class="card-cover" data-action="open" aria-label="Abrir ECA Digital e o Decreto 12.880/2026">
+              <img src="./assets/page-01.jpg" alt="Capa da apresentação" />
+              <span class="card-open">Abrir apresentação <b>↗</b></span>
+            </button>
+            <div class="card-meta">
+              <div class="card-title">ECA Digital e o Decreto 12.880/2026</div>
+              <div class="card-subtitle">Direito Digital · 34 telas</div>
+              <div class="card-footer"><span><span class="status-dot"></span> Pronta para ensaio</span><span>PDF</span></div>
+            </div>
+          </article>
+          <button id="add-presentation-card" class="add-card" type="button"><div class="add-icon">＋</div><div>Adicionar apresentação</div><small>Importe um arquivo PDF ou PPTX</small></button>
+        </section>
+      </main>
+
+      <main id="editor-view" class="editor-view hidden">
+        <div class="editor-heading">
+          <button class="back-button" data-action="library">← <span>Biblioteca</span></button>
+          <div class="editor-title-wrap"><div class="eyebrow">PREPARAÇÃO</div><div class="title-edit-row"><h1>ECA Digital e o Decreto 12.880/2026</h1><button id="rename-presentation" type="button" class="text-button">Renomear</button></div></div>
+          <div class="editor-actions"><button class="button button-outline" data-action="library">Concluído</button><button id="start-presentation" class="button button-primary">Iniciar apresentação <span>▶</span></button></div>
+        </div>
+        <div class="editor-content">
+          <aside class="slide-rail">
+            <div class="rail-heading"><strong>Telas</strong><span id="rail-count">34</span></div>
+            <div id="thumbnail-list" class="thumbnail-list"></div>
+          </aside>
+          <section class="preview-area">
+            <div class="preview-toolbar"><div><span class="live-mark"></span> PRÉVIA DA TELA <span id="preview-counter">01 / 34</span></div><span id="save-status" class="saved-label">Salvo neste navegador</span></div>
+            <div class="preview-frame"><img id="preview-image" src="" alt="Prévia da tela" /></div>
+            <div class="preview-controls"><button data-action="prev" aria-label="Tela anterior">←</button><span id="preview-title"></span><button data-action="next" aria-label="Próxima tela">→</button></div>
+          </section>
+          <aside class="comment-panel">
+            <div class="comment-heading"><div class="eyebrow">NOTAS DO APRESENTADOR</div><h2 id="comment-title">Comentário da tela</h2><p id="comment-topic" class="comment-topic"></p></div>
+            <label for="slide-title-editor" class="field-label">Título da tela</label>
+            <input id="slide-title-editor" class="keywords-editor" type="text" maxlength="150" autocomplete="off" />
+            <div class="field-hint">O título ajuda a identificar a tela e participa da comparação semântica.</div>
+            <div class="slide-order-actions"><button id="move-slide-up" type="button" class="button button-outline">Mover antes</button><button id="move-slide-down" type="button" class="button button-outline">Mover depois</button></div>
+            <div class="comment-divider"></div>
+            <label for="comment-editor" class="field-label">Comentário</label>
+            <textarea id="comment-editor" placeholder="Escreva o que deseja abordar nesta tela…"></textarea>
+            <div class="field-hint">Este conteúdo fica associado a esta tela e será usado para orientar sugestões durante a fala.</div>
+            <div class="comment-divider"></div>
+            <label for="keywords-editor" class="field-label">Palavras-chave</label>
+            <input id="keywords-editor" class="keywords-editor" type="text" placeholder="Ex.: acesso provável, privacidade" autocomplete="off" />
+            <div class="field-hint">Separe os termos com vírgulas. Você pode incluir, alterar ou apagar todos.</div>
+            <div id="keyword-list" class="keyword-list"></div>
+            <div class="comment-divider"></div>
+            <label class="session-option"><input id="semantic-enabled" type="checkbox" /> Usar busca semântica nesta apresentação</label>
+            <div class="field-hint">Opcional. A Deepgram transcreve a fala; o modelo semântico compara a fala com títulos, comentários, palavras-chave e texto das telas no seu computador. Não usa OpenAI nem cobra por comparação. O primeiro uso baixa o modelo e pode demorar.</div>
+            <div id="semantic-status" class="field-hint">Busca semântica local disponível.</div>
+            <div class="comment-divider"></div>
+            <label for="rehearsal-text" class="field-label">Ensaio de sugestão</label>
+            <textarea id="rehearsal-text" placeholder="Digite uma frase que você falaria durante a apresentação…"></textarea>
+            <button id="test-suggestion" class="button button-outline" type="button">Procurar tela relacionada</button>
+            <div id="suggestion-result" class="suggestion-result" role="status"></div>
+            <div class="comment-divider"></div>
+            <label class="session-option"><input id="mic-enabled" type="checkbox" checked /> Ativar microfone durante a apresentação</label>
+            <div class="field-hint">A transcrição utiliza Deepgram Nova-3. Seu áudio é enviado à Deepgram somente quando você inicia o teste ou a apresentação com microfone.</div>
+            <label for="deepgram-key" class="field-label session-label">Chave da Deepgram</label>
+            <input id="deepgram-key" class="keywords-editor" type="password" placeholder="Cole a chave de API" autocomplete="off" />
+            <button id="configure-deepgram" type="button" class="button button-outline microphone-test">Ativar Deepgram</button>
+            <div id="provider-status" class="field-hint">Aguardando chave. Ela fica apenas na memória deste servidor local e deve ser inserida novamente ao reiniciar.</div>
+            <label for="mic-device" class="field-label session-label">Entrada de áudio</label>
+            <select id="mic-device" class="keywords-editor"><option value="">Microfone padrão do sistema</option></select>
+            <div class="field-hint">Depois de permitir o microfone, selecione sua lapela nesta lista e repita o teste.</div>
+            <button id="test-microphone" type="button" class="button button-outline microphone-test">Testar microfone</button>
+            <div id="speech-preview" class="speech-preview" aria-live="polite">Diga uma frase e confira aqui se há sinal de áudio e transcrição.</div>
+            <label for="suggestion-seconds" class="field-label session-label">Tempo da sugestão (segundos)</label>
+            <input id="suggestion-seconds" class="keywords-editor" type="number" min="3" max="60" value="8" />
+            <label class="session-option session-label"><input id="keep-suggestion-open" type="checkbox" /> Manter sugestão até eu responder</label>
+            <label class="session-option session-label"><input id="store-transcript" type="checkbox" /> Guardar a transcrição após encerrar</label>
+            <details class="advanced-settings">
+              <summary>Calibração avançada</summary>
+              <label for="minimum-score" class="field-label session-label">Compatibilidade mínima</label>
+              <input id="minimum-score" class="keywords-editor" type="number" min="0.10" max="0.95" step="0.01" value="0.42" />
+              <label for="minimum-margin" class="field-label session-label">Diferença mínima entre candidatas</label>
+              <input id="minimum-margin" class="keywords-editor" type="number" min="0" max="0.30" step="0.005" value="0.025" />
+              <label for="speech-window" class="field-label session-label">Janela da fala (segundos)</label>
+              <input id="speech-window" class="keywords-editor" type="number" min="4" max="30" value="12" />
+              <label for="suggestion-interval" class="field-label session-label">Intervalo entre sugestões (segundos)</label>
+              <input id="suggestion-interval" class="keywords-editor" type="number" min="3" max="60" value="12" />
+              <label for="rejection-block" class="field-label session-label">Bloqueio depois da recusa (segundos)</label>
+              <input id="rejection-block" class="keywords-editor" type="number" min="5" max="300" value="45" />
+              <button id="reset-calibration" type="button" class="button button-outline microphone-test">Restaurar calibração</button>
+            </details>
+            <div id="mic-status" class="field-hint" role="status">Microfone aguardando início.</div>
+            <div id="session-summary" class="session-summary hidden">
+              <strong>Transcrição da última apresentação</strong>
+              <span id="transcript-count"></span>
+              <button id="download-transcript" type="button" class="button button-outline">Baixar transcrição (.txt)</button>
+            </div>
+            <div class="comment-footnote"><span class="lock-icon">◉</span><span>Apresentações importadas são salvas na pasta local do programa.</span></div>
+          </aside>
+        </div>
+      </main>
+
+      <main id="present-view" class="present-view hidden">
+        <div class="stage"><img id="stage-image" src="" alt="Tela atual da apresentação" /></div>
+        <div id="live-suggestion" class="live-suggestion hidden" role="status">
+          <div class="live-suggestion-title">Sugestão de tela</div>
+          <div id="live-suggestion-label"></div>
+          <div class="live-suggestion-actions"><button id="accept-suggestion" type="button">Sim, abrir</button><button id="dismiss-suggestion" type="button">Não</button></div>
+          <div id="suggestion-timer"></div>
+          <div class="suggestion-progress"><div id="suggestion-progress-bar"></div></div>
+        </div>
+        <div id="ai-status" class="ai-status"><i></i><span>IA aguardando</span></div>
+        <div id="speech-debug" class="speech-debug hidden" aria-live="polite"></div>
+      </main>
+      <div id="toast" class="toast" role="status"></div>
+    </div>
+    <script src="./app.js?v=10" defer></script>
+  </body>
+</html>
