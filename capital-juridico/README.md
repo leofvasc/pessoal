@@ -36,11 +36,11 @@ O importador também reescreve, nos artigos e páginas, os links internos que ap
 
 ## Passo a passo de instalação na Hostinger
 
-1. Conclua os passos 1 a 4 da lista de domínios (compra de `capitaljur.com.br` e apontamento para a Hostinger) antes de começar.
-2. Contrate na Hostinger um plano de hospedagem com WordPress (Premium ou Business).
-3. No hPanel, em **Sites → Adicionar site**, escolha WordPress e informe o domínio existente `capitaljur.com.br`. Defina usuário e senha do administrador.
+1. Contrate na Hostinger um plano de hospedagem com WordPress (Premium ou Business).
+2. Faça os passos 1 e 2 da lista de domínios (registro de `capitaljur.com.br` na própria Hostinger).
+3. No hPanel, em **Sites → Adicionar site**, escolha WordPress e selecione o domínio `capitaljur.com.br`. Defina usuário e senha do administrador.
 4. Em **Sites → Gerenciar → Avançado → Configuração do PHP**, escolha PHP 8.2 ou superior e ajuste `upload_max_filesize` e `post_max_size` para 64M e `max_execution_time` para 300.
-5. Em **Segurança → SSL**, instale o certificado gratuito para `capitaljur.com.br` e ative "Forçar HTTPS".
+5. Depois de confirmar que `capitaljur.com.br` abre o site (passos 3 e 4 da lista de domínios), vá em **Segurança → SSL**, instale o certificado gratuito para `capitaljur.com.br` e ative "Forçar HTTPS".
 6. Entre no WordPress (`capitaljur.com.br/wp-admin`). Em **Configurações → Geral**, escolha Português do Brasil, fuso de Rio Branco e confira que os dois endereços estão como `https://capitaljur.com.br`.
 7. Apague o post "Olá, mundo!" e a "Página de exemplo".
 8. Em **Plugins → Adicionar novo → Enviar plugin**, envie `dist/capital-juridico-core.zip` e ative.
@@ -52,28 +52,31 @@ O importador também reescreve, nos artigos e páginas, os links internos que ap
 14. Leia a tabela de resultados; se houver linha com "erro", clique em "Marcar tudo para reimportar" e repita o passo 13. Baixe o relatório CSV e guarde-o.
 15. Confira **Posts → Edições da Revista** (13 números), **Livros** (5 obras) e as páginas recriadas (eventos, vídeos, prêmio, seminário, CAMPIA, edital), e escreva as páginas Sobre a editora, Publique seu livro, Contato e Política de privacidade.
 16. Em **Aparência → Menus**, monte os menus do topo e do rodapé; em **Aparência → Personalizar → Identidade do site**, envie o ícone do site.
-17. Faça os passos 5 a 10 da lista de domínios (domínio antigo).
+17. Faça os passos 5 a 11 da lista de domínios (domínio antigo).
 18. Em **Ferramentas → Importar do Wix**, clique em "3. Verificar endereços no site novo" e cadastre redirecionamentos para o que não responder 200 ou 301.
 19. Em **Sites → Gerenciar → Backups**, confirme que os backups automáticos estão ativos.
 20. Nos meses seguintes, consulte o registro de endereços não encontrados em **Configurações → Capital Jurídico** e crie redirecionamentos para os que ainda recebem visitas.
 
 ## Passo a passo de configuração dos domínios
 
-1. Na Locaweb, registre `capitaljur.com.br` e mantenha a gestão de DNS na Locaweb (não troque os servidores DNS para a Hostinger, para não afetar e-mails ou outros serviços).
-2. No hPanel da Hostinger, depois de adicionar o site (passo 3 da instalação), anote o endereço IP do site (em **Sites → Gerenciar → Painel**, campo "IP do site").
-3. No painel da Locaweb, na zona DNS de `capitaljur.com.br`, crie o registro A de `@` apontando para o IP da Hostinger e o registro CNAME de `www` apontando para `capitaljur.com.br`. Remova registros A ou CNAME antigos de `@` e `www` que apontem para outro lugar.
-4. Aguarde a propagação (de minutos a 24 horas) e confirme que `capitaljur.com.br` abre a hospedagem da Hostinger; só então instale o SSL (passo 5 da instalação).
-5. Antes de mexer no domínio antigo, conclua a importação do Wix (passo 13 da instalação) e confirme o relatório.
-6. No hPanel, em **Domínios → Domínios estacionados** do site `capitaljur.com.br`, adicione `revistacapitaljuridico.com.br`. Se a Hostinger não oferecer essa opção no seu plano, crie `revistacapitaljuridico.com.br` como site separado e coloque nele o arquivo `dominio-antigo/.htaccess`.
-7. No painel da Locaweb, na zona DNS de `revistacapitaljuridico.com.br`, substitua os registros que apontam para o Wix: o registro A de `@` passa a apontar para o IP da Hostinger, e o registro de `www` passa a ser CNAME para `revistacapitaljuridico.com.br`. Não altere os registros MX nem TXT de e-mail.
-8. Após a propagação, instale no hPanel o SSL também para `revistacapitaljuridico.com.br` e `www.revistacapitaljuridico.com.br`. Sem esse certificado, quem acessa os endereços antigos com `https` (que é como o Google os conhece) vê um aviso de segurança antes do redirecionamento.
-9. Teste no navegador: `https://www.revistacapitaljuridico.com.br/post/ia-juridica-e-software-de-plagio` deve abrir `https://capitaljur.com.br/post/ia-juridica-e-software-de-plagio`; `https://revistacapitaljuridico.com.br/numero01` deve abrir `https://capitaljur.com.br/numero01`.
-10. No Wix, só depois dos testes, desconecte o domínio do site e encerre o plano.
-11. No Google Search Console, adicione a propriedade de domínio `capitaljur.com.br` (verificação por registro TXT na zona DNS da Locaweb) e envie o sitemap `https://capitaljur.com.br/wp-sitemap.xml`.
-12. No Search Console, na propriedade de `revistacapitaljuridico.com.br` (crie-a e verifique-a pelo DNS, se ainda não existir), use **Configurações → Mudança de endereço** e indique `capitaljur.com.br`.
-13. Comunique o novo endereço da revista ao IBICT (centro brasileiro do ISSN), porque o registro do ISSN 2763-9959 informa a URL do periódico.
-14. Atualize o endereço nos perfis e cadastros externos (Instagram, Lattes, assinaturas de e-mail, Google Meu Negócio, se houver).
-15. Mantenha `revistacapitaljuridico.com.br` registrado e renovado indefinidamente; os redirecionamentos só funcionam enquanto o domínio antigo existir e apontar para a Hostinger.
+`capitaljur.com.br` fica registrado e com DNS na Hostinger; `revistacapitaljuridico.com.br` continua registrado na Locaweb.
+
+1. No hPanel da Hostinger, em **Domínios → Registrar novo domínio**, registre `capitaljur.com.br`. Domínios `.com.br` exigem o CPF ou o CNPJ do titular; defina com cuidado quem será o titular (você ou o Instituto Lovelace), porque trocar a titularidade depois é um procedimento no Registro.br.
+2. Conclua os dados de contato pedidos pelo Registro.br e aguarde a ativação do domínio (pode levar algumas horas).
+3. Ao criar o site com o domínio registrado na própria Hostinger (passo 3 da instalação), o apontamento é automático; confirme em **Domínios → capitaljur.com.br → DNS / Nameservers** que o domínio usa os servidores DNS da Hostinger.
+4. Aguarde a propagação e confirme que `capitaljur.com.br` abre o site; só então instale o SSL (passo 5 da instalação).
+5. Antes de mexer no domínio antigo, conclua a importação do Wix (passo 13 da instalação).
+6. No hPanel, em **Domínios → Domínios estacionados** do site `capitaljur.com.br`, adicione `revistacapitaljuridico.com.br`. Se o seu plano não oferecer essa opção, crie o domínio antigo como site separado e coloque nele o arquivo `dominio-antigo/.htaccess`.
+7. Anote o IP do site, em **Sites → Gerenciar → Painel**, campo "IP do site".
+8. No painel da Locaweb, na zona DNS de `revistacapitaljuridico.com.br`, substitua os registros que apontam para o Wix: o registro A de `@` passa a apontar para o IP da Hostinger, e o registro de `www` passa a ser CNAME para `revistacapitaljuridico.com.br`. Não altere os registros MX nem TXT de e-mail.
+9. Após a propagação, instale no hPanel o SSL também para `revistacapitaljuridico.com.br` e `www.revistacapitaljuridico.com.br`. Sem esse certificado, quem acessa os endereços antigos com `https` (que é como o Google os conhece) vê um aviso de segurança antes do redirecionamento.
+10. Teste no navegador: `https://www.revistacapitaljuridico.com.br/post/ia-juridica-e-software-de-plagio` deve abrir `https://capitaljur.com.br/post/ia-juridica-e-software-de-plagio`; `https://revistacapitaljuridico.com.br/numero01` deve abrir `https://capitaljur.com.br/numero01`.
+11. No Wix, só depois dos testes, desconecte o domínio do site e encerre o plano.
+12. No Google Search Console, adicione a propriedade de domínio `capitaljur.com.br`; a verificação por registro TXT é feita na zona DNS da Hostinger (**Domínios → capitaljur.com.br → DNS**). Depois envie o sitemap `https://capitaljur.com.br/wp-sitemap.xml`.
+13. No Search Console, na propriedade de `revistacapitaljuridico.com.br` (crie-a e verifique-a por registro TXT na zona DNS da Locaweb, se ainda não existir), use **Configurações → Mudança de endereço** e indique `capitaljur.com.br`.
+14. Comunique o novo endereço da revista ao IBICT (centro brasileiro do ISSN), porque o registro do ISSN 2763-9959 informa a URL do periódico.
+15. Atualize o endereço nos perfis e cadastros externos (Instagram, Lattes, assinaturas de e-mail, Google Meu Negócio, se houver).
+16. Mantenha `revistacapitaljuridico.com.br` registrado e renovado na Locaweb indefinidamente, e ative a renovação automática também de `capitaljur.com.br` na Hostinger.
 
 ## Pontos de atenção
 
