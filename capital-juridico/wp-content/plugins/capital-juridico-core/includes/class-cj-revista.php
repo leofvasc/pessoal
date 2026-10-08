@@ -16,6 +16,7 @@ class CJ_Revista
     public static function init(): void
     {
         add_action('init', [__CLASS__, 'register']);
+        add_filter('term_link', [__CLASS__, 'term_link'], 10, 3);
         add_action('cj_edicao_add_form_fields', [__CLASS__, 'term_fields_new']);
         add_action('cj_edicao_edit_form_fields', [__CLASS__, 'term_fields_edit']);
         add_action('created_cj_edicao', [__CLASS__, 'term_save']);
@@ -40,6 +41,14 @@ class CJ_Revista
             'show_in_rest'      => true,
             'rewrite'           => ['slug' => 'revista/edicao', 'with_front' => false],
         ]);
+        // Os números da revista mantêm os endereços do Wix: /numero01 … /numero13.
+        add_rewrite_rule('^(numero\d{2})/?$', 'index.php?cj_edicao=$matches[1]', 'top');
+    }
+
+    /** Link dos números no formato do site antigo (/numero01). */
+    public static function term_link(string $link, WP_Term $term, string $taxonomy): string
+    {
+        return ($taxonomy === 'cj_edicao' && preg_match('/^numero\d{2}$/', $term->slug)) ? home_url('/' . $term->slug) : $link;
     }
 
     public static function term_field_defs(): array

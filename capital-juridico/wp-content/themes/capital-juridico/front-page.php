@@ -78,7 +78,7 @@ $artigos = new WP_Query(['post_type' => 'post', 'posts_per_page' => 4, 'ignore_s
             <div>
                 <h2 class="secao-titulo">Revista Capital Jurídico</h2>
                 <p><span class="selo selo-aviso">Periódico descontinuado</span> <span class="miudo">ISSN <?php echo esc_html(cj_opt('cj_issn')); ?></span></p>
-                <p><?php echo esc_html(cj_opt('cj_aviso_revista')); ?></p>
+                <p><?php echo esc_html(wp_trim_words(cj_opt('cj_aviso_revista'), 45, '…')); ?></p>
                 <ul class="lista-simples">
                     <?php while ($artigos->have_posts()) : $artigos->the_post(); ?>
                         <li><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></li>

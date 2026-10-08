@@ -26,7 +26,7 @@ $edicoes = class_exists('CJ_Revista') ? CJ_Revista::edicoes() : [];
             <?php endforeach; ?>
             <?php if (!$edicoes) : ?><p>Os números serão listados aqui após a importação do acervo.</p><?php endif; ?>
         </div>
-        <p><a class="botao botao-linha" href="<?php echo esc_url(get_permalink((int) get_option('page_for_posts')) ?: home_url('/blog')); ?>">Todos os artigos</a></p>
+        <p><a class="botao botao-linha" href="<?php echo esc_url(get_permalink((int) get_option('page_for_posts')) ?: home_url('/artigos')); ?>">Todos os artigos</a></p>
     </div>
 </main>
 <?php get_footer();

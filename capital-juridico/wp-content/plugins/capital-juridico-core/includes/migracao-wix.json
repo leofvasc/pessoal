@@ -1,0 +1,381 @@
+{
+ "versao": 1,
+ "site": "https://www.revistacapitaljuridico.com.br",
+ "edicoes": [
+  {
+   "numero": 1,
+   "slug": "numero01",
+   "mes": "dezembro",
+   "ano": 2020,
+   "nota": "",
+   "pagina_wix": "numero01",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_084a3458407949fb8591676b498df02d.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_7b264955ae5f4fee83d2094c53466e1e~mv2.jpg",
+   "artigos": [
+    "direito-de-vizinhanca01",
+    "o-principio-da-identificacao-publicitaria-e-os-influenciadores-digitais",
+    "o-direito-sistemico-e-o-proposito-de-pacificacao-dos-conflitos",
+    "a-contribuicao-do-direito-para-a-formacao-de-crises-financeiras",
+    "direito-medico-e-a-judicializacao-da-medicina",
+    "feminicidio-a-invisibilidade-mata",
+    "a-complexidade-do-direito-processual-na-graduacao-em-direito",
+    "liberdade-de-expressao-hate-speech",
+    "chegou-a-hora-do-dialogo"
+   ]
+  },
+  {
+   "numero": 2,
+   "slug": "numero02",
+   "mes": "fevereiro",
+   "ano": 2021,
+   "nota": "",
+   "pagina_wix": "numero02",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_31496629f7be40b49d9a4d424684606f.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_99a54fafa4a24482aed7621de205615f~mv2.png",
+   "artigos": [
+    "a-forca-do-direito-do-trabalho-em-tempos-de-pandemia",
+    "o-novo-pacote-anticrime-e-a-velha-segregacao-social",
+    "o-meu-e-o-seu-direito-ambiental",
+    "acordo-de-sócios-o-instrumento-parassocial-de-pacificação-societária",
+    "lgpd-seus-dados-estao-mesmo-seguros",
+    "recusa-terapeutica-e-vacinacao-compulsoria-uma-escolha-coletiva",
+    "direito-de-vizinhanca02",
+    "conflitos-entre-o-direito-a-liberdade-de-expressao-e-a-liberdade-de-crenca",
+    "a-cultura-do-cancelamento-sob-o-postulado-da-proporcionalidade",
+    "superindividamento-como-tentar-superar-esse-fenomeno-financeiro-que-assola-o-brasil"
+   ]
+  },
+  {
+   "numero": 3,
+   "slug": "numero03",
+   "mes": "abril",
+   "ano": 2021,
+   "nota": "",
+   "pagina_wix": "numero03",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_7af6ece505954bc0b102b45f34b28f10.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_34c00b503e22410da5d24addc305533a~mv2.jpg",
+   "artigos": [
+    "entrevista-com-assistente-social-no-âmbito-jurídico",
+    "direito-de-vizinhanca03",
+    "validade-dos-contratos-eletronicos",
+    "a-ineficacia-da-execucao-de-alimentos-pelo-rito-da-prisao-durante-a-pandemia-do-covid-19",
+    "natureza-atribuicoes-e-competencias-dos-conselhos-profissionais",
+    "o-principio-do-nao-retrocesso-ambiental-e-a-sua-importancia-para-a-preservacao",
+    "desmistificando-a-ortotanasia-e-os-cuidados-paliativos",
+    "advocacia-pos-covid-19",
+    "lei-geral-de-protecao-de-dados",
+    "breve-reflexao-sobre-motoristas-de-aplicativo-e-vinculo-de-emprego"
+   ]
+  },
+  {
+   "numero": 4,
+   "slug": "numero04",
+   "mes": "junho",
+   "ano": 2021,
+   "nota": "",
+   "pagina_wix": "numero04",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_723e226bf2414c5ab54e1231784d719d.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_a86dd015c6b84176b2520843ec3512ee~mv2.jpg",
+   "artigos": [
+    "entrevista-com-psicóloga-jurídica",
+    "a-urgencia-na-solucao-de-problemas-no-enfrentamento-a-violencia-domestica",
+    "a-quarta-onda-de-acesso-a-justica-voce-a-percebe",
+    "a-retroatividade-da-nova-lei-de-transito",
+    "direito-de-vizinhanca04",
+    "porque-sua-empresa-precisa-ter-um-plano-de-prevencao-ao-covid-19",
+    "liberdade-e-intolerancia-religiosa-o-que-diz-a-constituicao",
+    "o-fresh-start-apos-a-reforma-da-lei-de-recuperacao-de-empresas-e-falencia",
+    "o-xadrez-processual"
+   ]
+  },
+  {
+   "numero": 5,
+   "slug": "numero05",
+   "mes": "agosto",
+   "ano": 2021,
+   "nota": "",
+   "pagina_wix": "numero05",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_167a4d272b214eb890368a58e15d3224.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_a7fa26c511174c4382ff949392ce14ce~mv2.png",
+   "artigos": [
+    "advocacia-respeitada-e-cidadania-preservada",
+    "a-teoria-do-desvio-produtivo-do-consumidor-e-o-desperdicio-do-tempo-para-solucionar-problemas",
+    "praticas-abusivas-de-faculdades-e-as-regras-das-relacoes-de-consumo",
+    "o-agravo-de-instrumento-e-o-microssistema-da-tutela-coletiva-na-visao-do-stj",
+    "a-luta-pelos-direitos-animais-no-brasil",
+    "a-lei-14-188-2021-e-a-criminalizacao-da-violencia-psicologica-contra-a-mulher",
+    "a-importancia-do-legado-de-mythes-gomes-para-a-emancipacao-da-mulher-advogada",
+    "a-lei-maria-da-penha-15-anos-de-avanco",
+    "os-padroes-de-vestimenta-dos-advogados-e-das-advogadas-e-as-contribuicoes-das-seccionais"
+   ]
+  },
+  {
+   "numero": 6,
+   "slug": "numero06",
+   "mes": "outubro",
+   "ano": 2021,
+   "nota": "",
+   "pagina_wix": "numero06",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_8954b2da87ae4bc7ad01b10b557d8d75.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_792d1cda6ccc42a2a527acc97071e63b~mv2.png",
+   "artigos": [
+    "o-gênero-masculino-não-é-mais-universal",
+    "como-a-sororidade-contribuiu-para-a-conquista-da-cidadania-feminina",
+    "a-inafastabilidade-da-jurisdicao-e-o-requerimento-administrativo-como-requisito-do-interesse-de-agir",
+    "irracionalidade-coletiva-e-inquisicao-digital-o-caso-mauricio-souza-e-a-portaria-620-do-mtp",
+    "postura-ativa-de-autoconhecimento-do-advogado-e-a-sua-viabilizacao-atraves-da-cnv",
+    "tres-grandes-desafios-no-inicio-da-carreira-juridica",
+    "os-trabalhadores-terceirizados-e-a-ir-responsabilidade-da-administracao-publica"
+   ]
+  },
+  {
+   "numero": 7,
+   "slug": "numero07",
+   "mes": "março",
+   "ano": 2022,
+   "nota": "",
+   "pagina_wix": "numero07",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_9c41b405119b457abfe12f414fcdf14c.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_7c86d36edc554741b47b2d008d28d76f~mv2.png",
+   "artigos": [
+    "a-lei-14-188-2021-e-a-criminalizacao-da-violencia-psicologica-contra-a-mulher",
+    "a-quarta-onda-de-acesso-a-justica-voce-a-percebe",
+    "o-fresh-start-apos-a-reforma-da-lei-de-recuperacao-de-empresas-e-falencia",
+    "o-xadrez-processual",
+    "a-ineficacia-da-execucao-de-alimentos-pelo-rito-da-prisao-durante-a-pandemia-do-covid-19",
+    "acordo-de-sócios-o-instrumento-parassocial-de-pacificação-societária",
+    "recusa-terapeutica-e-vacinacao-compulsoria-uma-escolha-coletiva",
+    "conflitos-entre-o-direito-a-liberdade-de-expressao-e-a-liberdade-de-crenca",
+    "direito-medico-e-a-judicializacao-da-medicina",
+    "liberdade-de-expressao-hate-speech"
+   ]
+  },
+  {
+   "numero": 8,
+   "slug": "numero08",
+   "mes": "junho",
+   "ano": 2022,
+   "nota": "",
+   "pagina_wix": "numero08",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_c778c34f081245119173ef4343c0b258.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_6fd49a5b2e6b4a4ca29edb72be76b075~mv2.png",
+   "artigos": [
+    "os-impactos-do-esocial-para-as-empresas-privadas",
+    "as-mulheres-no-processo-de-democratização-do-ensino-e-os-desafios-de-sua-inserção-no-mercado",
+    "a-evolução-histórica-do-direito-do-trabalho-e-a-reforma-trabalhista",
+    "a-nova-cara-do-poder-moderador",
+    "o-desvirtuamento-da-audiência-de-conciliação-trabalhista",
+    "até-quando-catilina-abusarás-de-nossa-paciência",
+    "a-inconstitucionalidade-das-exceções-à-gratuidade-da-justiça-previstas-na-reforma-trabalhista"
+   ]
+  },
+  {
+   "numero": 9,
+   "slug": "numero09",
+   "mes": "outubro",
+   "ano": 2022,
+   "nota": "",
+   "pagina_wix": "numero09",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_aa0c88b01c3a43b796f75e90cef7f342.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_a4bf74ecf9d8422faebff535c2c92095~mv2.png",
+   "artigos": [
+    "impugnacao-aos-documentos",
+    "o-peixe-morre-pelas-redes",
+    "como-as-redes-sociais-podem-interferir-no-deferimento-dos-pedidos-de-assistencia-judiciaria-gratuita",
+    "novas-modalidades-de-saque-de-fgts",
+    "o-que-e-visual-law",
+    "você-sabe-o-que-e-inventário",
+    "o-que-e-direito-de-arrependimento"
+   ]
+  },
+  {
+   "numero": 10,
+   "slug": "numero10",
+   "mes": "fevereiro",
+   "ano": 2023,
+   "nota": "",
+   "pagina_wix": "numeroatual",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_488244c1e35b4aa28c99f4d0117f6f36.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_5947561feb594b9a913bbf2a53e77398~mv2.png",
+   "artigos": []
+  },
+  {
+   "numero": 11,
+   "slug": "numero11",
+   "mes": "outubro",
+   "ano": 2023,
+   "nota": "Edição especial com a UFAC",
+   "pagina_wix": "numero11",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_fa972c41f89c4e7381ec8f9ce367c657.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_2d081679b78f4135837490aee53e2e23~mv2.png",
+   "artigos": [
+    "o-direito-ao-alcance-de-todos-como-o-visual-law-pode-mudar-o-jogo",
+    "reforma-tributaria-e-seus-impactos-sobre-a-relacao-entre-estaado-e-contribuinte",
+    "o-acesso-a-justiça-como-ferramenta-para-desenvolvimento",
+    "judicializacao-do-direito-a-saude-a-identificacao-do-objeto-litigioso-para-garantir-a-prestacao",
+    "encarceramento-feminino-nos-presidios-do-estado-do-acre",
+    "o-estado-da-arte-de-se-pesquisar-e-publicar-no-direito"
+   ]
+  },
+  {
+   "numero": 12,
+   "slug": "numero12",
+   "mes": "janeiro",
+   "ano": 2024,
+   "nota": "",
+   "pagina_wix": "numero13",
+   "pdf": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_825e6cb4d12e415684022dfdcde23ff6.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_ff6c87e0e7a241b5bcdd51e7b2c1a5d3~mv2.png",
+   "artigos": [
+    "carta-ao-leitor-12-edicao",
+    "entrevista-com-fabio-silva-gerente-de-projetos-e-bacharel-em-sistema-de-informacao",
+    "lgpd-e-os-desafios-no-setor-publico-uma-necessaria-virada-cultural",
+    "contratos-eletronicos-conceito-e-validade",
+    "ia-juridica-e-software-de-plagio",
+    "o-fim-da-verdade-e-o-judiciario",
+    "direito-digital-como-fonte-da-revelcao-do-anonimato-em-casos-de-ilicitos-cometidos-na-internet",
+    "a-usucapiao-e-a-imprescritibilidade-dos-imoveis",
+    "escusas-a-ia",
+    "planejamento-sucessorio"
+   ]
+  },
+  {
+   "numero": 13,
+   "slug": "numero13",
+   "mes": "abril",
+   "ano": 2024,
+   "nota": "",
+   "pagina_wix": "cópia-número-atual",
+   "pdf": "",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_dd3c2f0bddc14167a53338782108588b~mv2.jpg",
+   "artigos": []
+  }
+ ],
+ "artigos_por_data": {
+  "2023-02-21": 10,
+  "2024-04-12": 13
+ },
+ "livros": [
+  {
+   "titulo": "Escritos do Ano 2021: Thomaz Drumond",
+   "sinopse": "Compilado dos artigos jurídicos escritos e publicados por Thomaz Drumond, procurador do estado do Acre, em 2021.",
+   "autores": "Thomaz Drumond",
+   "ano": "2021",
+   "digital": "gratuito",
+   "arquivo": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_f7ffbba3244249acb0c59d6e04514c38.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_c53784ace8cc40f997262b30152b677f~mv2.png"
+  },
+  {
+   "titulo": "Publicidade na advocacia: perguntas frequentes",
+   "sinopse": "Uma FAQ com os principais pontos que os advogados devem saber antes de fazerem a sua publicidade.",
+   "autores": "",
+   "ano": "",
+   "digital": "gratuito",
+   "arquivo": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_1841e842224e447ea464b38b664e2bd1.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_b71b641116834dcfafefa51630455856~mv2.png"
+  },
+  {
+   "titulo": "Aplicando visual law no seu escritório",
+   "sinopse": "Um e-book bem direto ao ponto para você conhecer como pode começar a praticar as técnicas de visual law no seu escritório de advocacia.",
+   "autores": "",
+   "ano": "",
+   "digital": "gratuito",
+   "arquivo": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_ab0aa43e5abe4190b320fc5387b11d20.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_9e20808136394f4d8aa001f298499633~mv2.png"
+  },
+  {
+   "titulo": "Boas práticas com WhatsApp no trabalho",
+   "sinopse": "Um guia sobre como respeitar e ser respeitado usando o WhatsApp na sua empresa.",
+   "autores": "",
+   "ano": "",
+   "digital": "gratuito",
+   "arquivo": "https://www.revistacapitaljuridico.com.br/_files/ugd/a1ec3c_8c41e9ad8099400fb48464cf9724e6e0.pdf",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_2917fd4ae1ff4ed094fe9d79eedfa254~mv2.png"
+  },
+  {
+   "titulo": "Uma visão prática do Direito",
+   "sinopse": "Compilado multidisciplinar de textos jurídicos de autoria de Leonardo Vasconcelos.",
+   "autores": "Leonardo Fontes Vasconcelos",
+   "ano": "",
+   "impresso": "esgotado",
+   "capa": "https://static.wixstatic.com/media/a1ec3c_8defcdf003f54b8fad89dc151b3c7d66~mv2.png"
+  }
+ ],
+ "paginas": {
+  "": {
+   "acao": "ignorar",
+   "motivo": "A página inicial passa a apresentar a editora."
+  },
+  "sobre": {
+   "acao": "ignorar",
+   "motivo": "O texto antigo \"Sobre a Revista\" foi substituído pela apresentação do acervo; /sobre passa a apresentar a editora."
+  },
+  "numerosanteriores": {
+   "acao": "seo"
+  },
+  "artigos": {
+   "acao": "seo"
+  },
+  "expediente": {
+   "acao": "seo"
+  },
+  "publique": {
+   "acao": "seo+conteudo"
+  },
+  "livros": {
+   "acao": "livros"
+  },
+  "numeroatual": {
+   "acao": "redirecionar",
+   "para": "/numero10"
+  },
+  "cópia-número-atual": {
+   "acao": "redirecionar",
+   "para": "/numero13"
+  },
+  "numero01": {
+   "acao": "edicao"
+  },
+  "numero02": {
+   "acao": "edicao"
+  },
+  "numero03": {
+   "acao": "edicao"
+  },
+  "numero04": {
+   "acao": "edicao"
+  },
+  "numero05": {
+   "acao": "edicao"
+  },
+  "numero06": {
+   "acao": "edicao"
+  },
+  "numero07": {
+   "acao": "edicao"
+  },
+  "numero08": {
+   "acao": "edicao"
+  },
+  "numero09": {
+   "acao": "edicao"
+  },
+  "numero10": {
+   "acao": "edicao"
+  },
+  "numero11": {
+   "acao": "edicao"
+  },
+  "numero12": {
+   "acao": "edicao"
+  },
+  "numero13": {
+   "acao": "edicao"
+  }
+ },
+ "redirecionamentos": {
+  "/numeroatual": "/numero10",
+  "/cópia-número-atual": "/numero13",
+  "/blog": "/artigos"
+ }
+}

@@ -1,6 +1,6 @@
 <?php
 /**
- * Expediente da Revista Capital Jurídico (/numerosanteriores/expediente).
+ * Expediente da Revista Capital Jurídico (/expediente, mesmo endereço do Wix).
  * Os dados do quadro vêm de Configurações → Capital Jurídico; o texto abaixo
  * dele (conselho editorial, equipe, histórico) é editado na própria página.
  */
@@ -10,9 +10,14 @@ $dados = array_filter([
     'ISSN'            => cj_opt('cj_issn'),
     'Situação'        => 'Descontinuada; não recebe novas submissões',
     'Período'         => cj_opt('cj_rev_periodo'),
+    'Números'         => cj_opt('cj_rev_numeros'),
     'Periodicidade'   => cj_opt('cj_rev_periodicidade'),
+    'Idiomas aceitos' => cj_opt('cj_rev_idiomas'),
     'Local'           => cj_opt('cj_rev_local'),
     'Editor-chefe'    => cj_opt('cj_rev_editor'),
+    'Editores científicos' => implode(', ', array_filter(array_map('trim', preg_split('/\R/', cj_opt('cj_rev_editores'))))),
+    'Autor corporativo' => cj_opt('cj_rev_autor_corporativo'),
+    'Endereço'        => cj_opt('cj_rev_endereco'),
     'Editora'         => get_bloginfo('name'),
     'Mantenedora'     => cj_opt('cj_mantenedora') ? cj_opt('cj_mantenedora') . (cj_opt('cj_mantenedora_cnpj') ? ' (CNPJ ' . cj_opt('cj_mantenedora_cnpj') . ')' : '') : '',
     'Contato'         => cj_opt('cj_rev_email') ?: cj_opt('cj_email'),

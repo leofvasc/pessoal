@@ -10,11 +10,11 @@
 $completo = !empty($args['completo']);
 $titulo   = cj_opt('cj_titulo_periodico');
 $acervo   = home_url('/numerosanteriores');
-$blog     = get_permalink((int) get_option('page_for_posts')) ?: home_url('/blog');
+$blog     = get_permalink((int) get_option('page_for_posts')) ?: home_url('/artigos');
 $itens = [
     $acervo                                   => 'Números',
     $blog                                     => 'Artigos',
-    home_url('/numerosanteriores/expediente') => 'Expediente',
+    home_url('/expediente')                   => 'Expediente',
     home_url('/publique')                     => 'Normas para publicação',
 ];
 $atual = untrailingslashit((string) strtok((string) ($_SERVER['REQUEST_URI'] ?? ''), '?'));
@@ -30,7 +30,8 @@ $atual = untrailingslashit((string) strtok((string) ($_SERVER['REQUEST_URI'] ?? 
         <p class="acervo-situacao">
             <span class="selo selo-aviso">Periódico descontinuado</span>
             <?php echo esc_html(implode(' · ', array_filter([
-                cj_opt('cj_rev_periodo') ? 'Publicado de ' . cj_opt('cj_rev_periodo') : '',
+                cj_opt('cj_rev_periodo') ? 'Publicada de ' . cj_opt('cj_rev_periodo') : '',
+                cj_opt('cj_rev_numeros') ? cj_opt('cj_rev_numeros') . ' números' : '',
                 cj_opt('cj_rev_periodicidade'),
                 cj_opt('cj_rev_local'),
             ]))); ?>

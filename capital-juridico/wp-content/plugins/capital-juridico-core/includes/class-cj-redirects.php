@@ -41,9 +41,12 @@ class CJ_Redirects
             '#^/blog-feed\.xml$#'                              => '/feed',
             '#^/feed\.xml$#'                                   => '/feed',
             '#^/post/([^/]+)/amp/?$#'                          => '/post/$1',
-            '#^/profile/.+$#'                                  => '/blog',
-            '#^/blog/categories/?$#'                           => '/blog',
-            '#^/blog/hashtags/?$#'                             => '/blog',
+            '#^/profile/.+$#'                                  => '/artigos',
+            '#^/blog/?$#'                                      => '/artigos',
+            '#^/blog/categories/(.+)$#'                        => '/artigos/categories/$1',
+            '#^/blog/(?:hashtags|tags)/(.+)$#'                 => '/artigos/tags/$1',
+            '#^/artigos/hashtags/(.+)$#'                       => '/artigos/tags/$1',
+            '#^/artigos/(?:categories|tags|hashtags)/?$#'      => '/artigos',
             '#^/(?:blank|copy-of-[^/]+)/?$#'                   => '/',
         ];
     }
@@ -84,6 +87,18 @@ class CJ_Redirects
         foreach (self::patterns() as $re => $dest) {
             if (preg_match($re, $path)) {
                 self::go(preg_replace($re, $dest, $path));
+            }
+        }
+        // Arquivos que o Wix servia no próprio domínio (/_files/ugd/…pdf): o importador
+        // copiou cada um para a biblioteca de mídia e guardou o endereço de origem.
+        if (str_starts_with($path, '/_files/')) {
+            global $wpdb;
+            $id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_cj_origem' AND meta_value LIKE %s LIMIT 1",
+                '%' . $wpdb->esc_like(rawurldecode($path)) . '%'
+            ));
+            if ($id && ($url = wp_get_attachment_url($id))) {
+                self::go($url);
             }
         }
         // Artigo com slug alterado na importação: o importador registra o slug do Wix.

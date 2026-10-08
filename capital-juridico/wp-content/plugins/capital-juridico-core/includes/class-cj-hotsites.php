@@ -24,6 +24,7 @@ class CJ_Hotsites
     private const RESERVADOS = [
         'wp-admin', 'wp-content', 'wp-includes', 'wp-json', 'wp-login.php', 'post', 'blog', 'livros',
         'revista', 'feed', 'sitemap.xml', 'wp-sitemap.xml', 'numerosanteriores', 'sobre', 'publique', 'contato',
+        'artigos', 'expediente', 'publique-seu-livro', '_files',
     ];
 
     public static function init(): void

@@ -206,6 +206,7 @@ class CJ_Importador_Wix
             case 'refazer':
                 global $wpdb;
                 $wpdb->query('UPDATE ' . self::table() . " SET status = 'pendente'");
+                delete_option('cj_wix_final_idx');
                 wp_send_json_success(['mensagem' => 'Todos os endereços voltaram para "pendente".']);
         }
         wp_send_json_error(['mensagem' => 'Ação desconhecida.']);
@@ -215,20 +216,44 @@ class CJ_Importador_Wix
     /* Etapa 1 — sitemap                                                   */
     /* ------------------------------------------------------------------ */
 
-    private static function fetch(string $url, int $timeout = 30): array
+    /**
+     * Baixa uma página do site antigo. O Wix responde 429 quando recebe muitas
+     * requisições seguidas: nesse caso espera e tenta de novo.
+     */
+    private static function fetch(string $url, int $timeout = 30, bool $seguir = true): array
     {
-        $r = wp_remote_get($url, ['timeout' => $timeout, 'redirection' => 5, 'user-agent' => self::UA, 'headers' => ['Accept-Language' => 'pt-BR,pt;q=0.9']]);
-        if (is_wp_error($r)) {
-            return ['code' => 0, 'body' => '', 'erro' => $r->get_error_message()];
+        // Caminhos com acento (ex.: /post/a-evolução-…) precisam ir codificados.
+        $url = preg_replace_callback('#[^\x21-\x7E]+#', fn($m) => rawurlencode($m[0]), $url);
+        for ($tentativa = 0; $tentativa < 4; $tentativa++) {
+            $r = wp_remote_get($url, ['timeout' => $timeout, 'redirection' => $seguir ? 5 : 0, 'user-agent' => self::UA, 'headers' => ['Accept-Language' => 'pt-BR,pt;q=0.9']]);
+            if (is_wp_error($r)) {
+                return ['code' => 0, 'body' => '', 'erro' => $r->get_error_message(), 'location' => ''];
+            }
+            $code = (int) wp_remote_retrieve_response_code($r);
+            if ($code !== 429) {
+                break;
+            }
+            sleep(8 + 8 * $tentativa);
         }
-        return ['code' => (int) wp_remote_retrieve_response_code($r), 'body' => (string) wp_remote_retrieve_body($r), 'erro' => ''];
+        return ['code' => $code, 'body' => (string) wp_remote_retrieve_body($r), 'erro' => '', 'location' => (string) wp_remote_retrieve_header($r, 'location')];
+    }
+
+    /** Dados da migração (números da revista, livros, destino de cada página), em migracao-wix.json. */
+    public static function dados(): array
+    {
+        static $d = null;
+        if ($d === null) {
+            $d = json_decode((string) file_get_contents(__DIR__ . '/migracao-wix.json'), true) ?: [];
+        }
+        return $d;
     }
 
     private static function step_sitemap(array $o): array
     {
         global $wpdb;
         $t = self::table();
-        $fila = [$o['site'] . '/sitemap.xml'];
+        // O índice de sitemaps do Wix pode omitir o dos posts do blog: ele é pedido diretamente.
+        $fila = [$o['site'] . '/sitemap.xml', $o['site'] . '/blog-posts-sitemap.xml'];
         $vistos = [];
         $urls = [];
         while ($fila && count($vistos) < 60) {
@@ -239,7 +264,10 @@ class CJ_Importador_Wix
             $vistos[$sm] = true;
             $r = self::fetch($sm);
             if ($r['code'] !== 200) {
-                return ['mensagem' => "Não foi possível ler $sm (HTTP {$r['code']} {$r['erro']})."];
+                if (count($vistos) === 1) {
+                    return ['mensagem' => "Não foi possível ler $sm (HTTP {$r['code']} {$r['erro']})."];
+                }
+                continue;
             }
             $xml = @simplexml_load_string($r['body']);
             if (!$xml) {
@@ -257,7 +285,7 @@ class CJ_Importador_Wix
         $novos = 0;
         foreach ($urls as $loc => $lastmod) {
             $path = self::path_of($loc);
-            $tipo = preg_match('#^/post/#', $path) ? 'artigo' : (preg_match('#^/blog/(categories|hashtags)/#', $path) ? 'categoria' : 'pagina');
+            $tipo = preg_match('#^/post/#', $path) ? 'artigo' : (preg_match('#^/(?:blog|artigos)/(categories|tags|hashtags)/#', $path) ? 'categoria' : 'pagina');
             $existe = $wpdb->get_var($wpdb->prepare("SELECT id FROM $t WHERE path = %s", $path));
             if ($existe) {
                 $wpdb->update($t, ['url' => $loc, 'lastmod' => $lastmod], ['id' => $existe]);
@@ -294,7 +322,10 @@ class CJ_Importador_Wix
             $wpdb->update($t, $res, ['id' => $row['id']]);
         }
         $restam = (int) $wpdb->get_var("SELECT COUNT(*) FROM $t WHERE status = 'pendente'");
-        return ['continuar' => $rows && $restam > 0, 'mensagem' => $restam ? "Importando… faltam $restam endereços. Não feche esta página." : 'Importação concluída.'];
+        if ($restam > 0) {
+            return ['continuar' => (bool) $rows, 'mensagem' => "Importando… faltam $restam endereços. Não feche esta página."];
+        }
+        return self::step_finalize($o);
     }
 
     private static function dom(string $html): DOMDocument
@@ -476,7 +507,9 @@ class CJ_Importador_Wix
     /** Domínios onde o Wix guarda mídia (expressão regular, filtrável). */
     private static function media_hosts(): string
     {
-        return (string) apply_filters('cj_wix_media_hosts', 'wixstatic\.com|wixmp\.com|usrfiles\.com|filesusr\.com');
+        // O Wix também serve arquivos enviados (PDFs dos números, e-books) no próprio domínio, em /_files/.
+        $proprio = preg_quote((string) wp_parse_url((string) get_option('cj_wix_site', ''), PHP_URL_HOST), '#');
+        return (string) apply_filters('cj_wix_media_hosts', 'wixstatic\.com|wixmp\.com|usrfiles\.com|filesusr\.com' . ($proprio ? '|' . $proprio . '/_files' : ''));
     }
 
     /** Copia imagens e PDFs hospedados no Wix e reescreve os endereços no HTML. */
@@ -505,20 +538,20 @@ class CJ_Importador_Wix
         }, $html);
     }
 
+    /**
+     * Categorias e tags do próprio artigo. No Wix elas ficam no rodapé do post
+     * (data-hook="post-footer"); o menu do blog, no topo, lista todas e é ignorado.
+     */
     private static function taxonomies_from_links(DOMDocument $doc, ?DOMNode $scope): array
     {
         $x = new DOMXPath($doc);
         $cats = [];
         $tags = [];
-        // Procura primeiro perto do artigo; o menu geral do blog lista todas as categorias e não serve.
-        $context = $scope ? ($x->query('ancestor::*[.//a[contains(@href,"/blog/categories/")]][1]', $scope)->item(0) ?? $scope) : null;
-        if (!$context) {
-            return [[], []];
-        }
-        foreach ($x->query('.//a[contains(@href,"/blog/categories/") or contains(@href,"/blog/hashtags/")]', $context) as $a) {
+        $links = $x->query('//*[@data-hook="post-footer"]//a[contains(@href,"/categories/") or contains(@href,"/tags/") or contains(@href,"/hashtags/")]');
+        foreach ($links as $a) {
             $href = $a->getAttribute('href');
             $name = trim($a->textContent);
-            if (!preg_match('#/blog/(categories|hashtags)/([^/?\#]+)#', $href, $m) || $name === '') {
+            if (!preg_match('#/(categories|tags|hashtags)/([^/?\#]+)#', $href, $m) || $name === '') {
                 continue;
             }
             if ($m[1] === 'categories') {
@@ -527,8 +560,7 @@ class CJ_Importador_Wix
                 $tags[rawurldecode($m[2])] = ltrim($name, '#');
             }
         }
-        // Se a página trouxer muitas categorias, é o menu geral: descarta.
-        return [count($cats) > 6 ? [] : $cats, count($tags) > 20 ? [] : $tags];
+        return [$cats, $tags];
     }
 
     private static function import_post(array $row, array $o): array
@@ -650,7 +682,7 @@ class CJ_Importador_Wix
         ];
     }
 
-    /** Cria categorias e hashtags com os mesmos slugs do Wix e detecta o número da edição. */
+    /** Cria categorias e tags com os mesmos slugs do Wix. */
     private static function assign_terms(int $post_id, array $cats, array $tags): void
     {
         $cat_ids = [];
@@ -663,112 +695,247 @@ class CJ_Importador_Wix
             if ($term) {
                 $cat_ids[] = (int) $term->term_id;
             }
-            if (preg_match('/(?:edi[çc][ãa]o|n[úu]mero|n\.?\s*[ºo°])\s*0*(\d{1,3})/iu', $name, $m)) {
-                $n = (int) $m[1];
-                $ed = get_term_by('slug', 'numero-' . sprintf('%02d', $n), 'cj_edicao');
-                if (!$ed) {
-                    $new = wp_insert_term('Número ' . sprintf('%02d', $n), 'cj_edicao', ['slug' => 'numero-' . sprintf('%02d', $n)]);
-                    if (!is_wp_error($new)) {
-                        update_term_meta($new['term_id'], 'cj_numero', $n);
-                        $ed = get_term($new['term_id'], 'cj_edicao');
-                    }
-                }
-                if ($ed) {
-                    wp_set_object_terms($post_id, [(int) $ed->term_id], 'cj_edicao', true);
-                }
-            }
         }
         if ($cat_ids) {
             wp_set_post_categories($post_id, $cat_ids, false);
         }
+        $tag_ids = [];
         foreach ($tags as $slug => $name) {
-            if (!get_term_by('slug', sanitize_title_with_dashes($slug, '', 'save'), 'post_tag')) {
-                wp_insert_term($name, 'post_tag', ['slug' => sanitize_title_with_dashes($slug, '', 'save')]);
+            $term = get_term_by('slug', sanitize_title_with_dashes($slug, '', 'save'), 'post_tag');
+            if (!$term) {
+                $new = wp_insert_term($name, 'post_tag', ['slug' => sanitize_title_with_dashes($slug, '', 'save')]);
+                $term = is_wp_error($new) ? null : get_term($new['term_id'], 'post_tag');
+            }
+            if ($term) {
+                $tag_ids[] = (int) $term->term_id;
             }
         }
-        if ($tags) {
-            wp_set_post_tags($post_id, array_values($tags), false);
+        if ($tag_ids) {
+            wp_set_object_terms($post_id, $tag_ids, 'post_tag', false);
         }
     }
 
     private static function import_page(array $row, array $o): array
     {
-        $r = self::fetch($row['url']);
+        $path  = trim(rawurldecode($row['path']), '/');
+        $regra = self::dados()['paginas'][$path] ?? [];
+        $acao  = $regra['acao'] ?? '';
+
+        if ($acao === 'ignorar') {
+            return ['status' => 'registrado', 'mensagem' => 'Não migrada. ' . ($regra['motivo'] ?? '')];
+        }
+        if ($acao === 'redirecionar') {
+            self::add_redirect('/' . $path, $regra['para']);
+            return ['status' => 'redirecionado', 'mensagem' => 'Redireciona para ' . $regra['para']];
+        }
+
+        $r = self::fetch($row['url'], 30, false);
+        if (in_array($r['code'], [301, 302, 307, 308], true) && $r['location']) {
+            $destino = self::path_of($r['location']);
+            self::add_redirect('/' . $path, $destino);
+            return ['status' => 'redirecionado', 'mensagem' => 'No Wix redirecionava para ' . $destino . '; o redirecionamento foi mantido'];
+        }
         if ($r['code'] !== 200) {
             return ['status' => 'erro', 'mensagem' => "HTTP {$r['code']} {$r['erro']}"];
         }
         $doc  = self::dom($r['body']);
         $meta = self::head_meta($doc);
         $out  = ['status' => 'registrado', 'seo_title' => $meta['title'], 'seo_desc' => $meta['desc'], 'seo_image' => $meta['og_image'], 'robots' => $meta['robots']];
-        $path = trim($row['path'], '/');
 
+        if ($acao === 'edicao') {
+            $out['mensagem'] = 'Página de número da revista: criada na etapa final, com os artigos, a capa e o PDF';
+            return $out;
+        }
+        if ($acao === 'livros') {
+            $out['mensagem'] = 'Catálogo: os livros são criados na etapa final';
+            return $out;
+        }
+
+        // Destino no site novo: hotsite, página existente ou página nova com o mesmo endereço.
+        $paths  = (array) get_option('cj_hotsite_paths', []);
         $target = 0;
-        $onde = '';
-        $paths = (array) get_option('cj_hotsite_paths', []);
-        // Páginas do Wix cujo conteúdo muda de lugar no site novo: o "Sobre a revista"
-        // antigo vira o expediente do acervo, e /sobre passa a apresentar a editora.
-        $mapa = (array) apply_filters('cj_wix_page_map', ['sobre' => 'numerosanteriores/expediente']);
-        if (isset($mapa[$path]) && ($mapped = get_page_by_path($mapa[$path]))) {
-            $target = $mapped->ID;
-            $onde = 'página ' . $mapa[$path];
-        } elseif ($path === '') {
-            $target = (int) get_option('page_on_front');
-            $onde = 'página inicial';
-        } elseif (isset($paths[$path])) {
+        $onde   = 'página';
+        $main   = (new DOMXPath($doc))->query('//main')->item(0);
+        $html   = $main ? self::clean($main, $doc) : '';
+        $texto  = mb_strlen(wp_strip_all_tags($html));
+        if (isset($paths[$path])) {
             $target = (int) $paths[$path];
             $onde = 'hotsite';
         } elseif ($page = get_page_by_path($path)) {
             $target = $page->ID;
-            $onde = 'página';
+        } elseif ($texto < 80) {
+            $out['mensagem'] = 'Página sem texto no Wix (provável hotsite ou elemento personalizado): crie um hotsite com o endereço /' . $path;
+            return $out;
+        } elseif ($o['paginas']) {
+            $target = wp_insert_post(wp_slash([
+                'post_type' => 'page', 'post_status' => 'publish', 'post_name' => $path,
+                'post_title' => $meta['og_title'] ?: preg_replace('/\s*[|\-–]\s*Revista Capital.*$/u', '', $meta['title']) ?: $path,
+                'post_content' => '',
+            ]));
+            global $wpdb;
+            $wpdb->update($wpdb->posts, ['post_name' => sanitize_title_with_dashes($path, '', 'save')], ['ID' => $target]);
+            clean_post_cache($target);
+            $onde = 'página nova';
         }
 
-        if ($target && $o['paginas']) {
-            $aplicados = [];
-            foreach (['_cj_seo_title' => $meta['title'], '_cj_seo_desc' => $meta['desc']] as $k => $v) {
-                if ($v !== '' && get_post_meta($target, $k, true) === '') {
-                    update_post_meta($target, $k, wp_slash($v));
-                    $aplicados[] = $k === '_cj_seo_title' ? 'título' : 'descrição';
-                }
-            }
-            if ($meta['og_image'] && $o['imagens'] && !get_post_meta($target, '_cj_seo_image', true)) {
-                if ($img = self::sideload(self::wix_original($meta['og_image']), $target)) {
-                    update_post_meta($target, '_cj_seo_image', $img);
-                    $aplicados[] = 'imagem';
-                }
-            }
-            // Texto da página: só preenche páginas ainda vazias (nunca sobrescreve o que foi escrito).
-            $front = (int) get_option('page_on_front');
-            if (get_post_type($target) === 'page' && $target !== $front && trim((string) get_post_field('post_content', $target)) === '') {
-                $main = (new DOMXPath($doc))->query('//main')->item(0);
-                $html = $main ? self::clean($main, $doc) : '';
-                if (mb_strlen(wp_strip_all_tags($html)) > 80) {
-                    $n = 0;
-                    if ($o['imagens']) {
-                        $html = self::localize_media($html, $target, $n);
-                    }
-                    wp_update_post(wp_slash(['ID' => $target, 'post_content' => $html]));
-                    $aplicados[] = 'texto (' . number_format_i18n(mb_strlen(wp_strip_all_tags($html))) . ' car.)';
-                }
-            }
-            $out['wp_id'] = $target;
-            $out['mensagem'] = $aplicados ? 'Aplicado à ' . $onde . ': ' . implode(', ', $aplicados) : 'SEO já preenchido na ' . $onde . '; mantido';
-        } elseif ($row['tipo'] === 'categoria') {
-            $out['mensagem'] = 'Endereço de categoria/hashtag: mantido automaticamente se algum artigo usar a categoria';
-        } else {
+        if (!$target || !$o['paginas']) {
             $out['mensagem'] = 'Não há página com este endereço no site novo: crie-a ou cadastre um redirecionamento';
+            return $out;
         }
 
-        // PDFs ligados na página (ex.: números anteriores da revista).
-        if ($o['imagens'] && preg_match_all('#href="([^"]*?(?:' . self::media_hosts() . ')/[^"]*?\.pdf[^"]*)"#i', $r['body'], $mm)) {
+        $aplicados = [];
+        foreach (['_cj_seo_title' => $meta['title'], '_cj_seo_desc' => $meta['desc']] as $k => $v) {
+            if ($v !== '' && get_post_meta($target, $k, true) === '') {
+                update_post_meta($target, $k, wp_slash($v));
+                $aplicados[] = $k === '_cj_seo_title' ? 'título' : 'descrição';
+            }
+        }
+        if ($meta['og_image'] && $o['imagens'] && !get_post_meta($target, '_cj_seo_image', true)) {
+            if ($img = self::sideload(self::wix_original($meta['og_image']), $target)) {
+                update_post_meta($target, '_cj_seo_image', $img);
+                $aplicados[] = 'imagem';
+            }
+        }
+        // Texto: só em páginas vazias (nunca sobrescreve o que foi escrito) e só quando a regra permite.
+        $com_texto = $acao === '' || str_contains($acao, 'conteudo');
+        if ($com_texto && get_post_type($target) === 'page' && $target !== (int) get_option('page_on_front')
+            && trim((string) get_post_field('post_content', $target)) === '' && $texto > 80) {
             $n = 0;
-            foreach (array_unique($mm[1]) as $pdf) {
-                if (self::sideload(html_entity_decode($pdf), $target)) {
+            if ($o['imagens']) {
+                $html = self::localize_media($html, $target, $n);
+            }
+            wp_update_post(wp_slash(['ID' => $target, 'post_content' => $html]));
+            $aplicados[] = 'texto (' . number_format_i18n($texto) . ' car.' . ($n ? ", $n img" : '') . ')';
+        }
+        // Arquivos ligados na página (PDFs, formulários): copiados para que o endereço antigo redirecione.
+        if ($o['imagens'] && preg_match_all('#href="([^"]*?(?:' . self::media_hosts() . ')/[^"]*?\.(?:pdf|docx?)[^"]*)"#i', $r['body'], $mm)) {
+            $n = 0;
+            foreach (array_unique($mm[1]) as $arq) {
+                if (self::sideload(html_entity_decode($arq), $target)) {
                     $n++;
                 }
             }
-            $out['mensagem'] .= "; $n PDF(s) copiados para a biblioteca de mídia";
+            $aplicados[] = "$n arquivo(s)";
         }
+        $out['wp_id'] = $target;
+        $out['mensagem'] = 'Aplicado à ' . $onde . ': ' . ($aplicados ? implode(', ', $aplicados) : 'nada novo (já preenchido)');
         return $out;
+    }
+
+    /** Acrescenta um redirecionamento à lista manual (Configurações → Capital Jurídico), sem duplicar. */
+    private static function add_redirect(string $de, string $para): void
+    {
+        $atual = (string) get_option('cj_redirects', '');
+        if (array_key_exists(strtolower(rtrim($de, '/')), CJ_Redirects::manual())) {
+            return;
+        }
+        update_option('cj_redirects', trim($atual . "\n" . $de . ' ' . $para));
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Etapa final — números da revista, livros e redirecionamentos        */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Executada um item por chamada, porque cada número tem PDF de vários
+     * megabytes. Os dados vêm de migracao-wix.json, levantados do site antigo.
+     */
+    private static function step_finalize(array $o): array
+    {
+        $d     = self::dados();
+        $itens = array_merge(
+            array_map(fn($e) => ['edicao', $e], $d['edicoes'] ?? []),
+            array_map(fn($l) => ['livro', $l], $d['livros'] ?? []),
+            [['redirecionamentos', $d['redirecionamentos'] ?? []]]
+        );
+        $i = (int) get_option('cj_wix_final_idx', 0);
+        if ($i >= count($itens)) {
+            delete_option('cj_wix_final_idx');
+            return ['continuar' => false, 'mensagem' => 'Importação concluída: artigos, páginas, números da revista e livros.'];
+        }
+        [$tipo, $item] = $itens[$i];
+        if ($tipo === 'edicao') {
+            self::import_edicao($item, $d, $o);
+            $msg = 'Número ' . $item['numero'] . ' da revista';
+        } elseif ($tipo === 'livro') {
+            self::import_livro($item, $o);
+            $msg = 'Livro "' . $item['titulo'] . '"';
+        } else {
+            foreach ($item as $de => $para) {
+                self::add_redirect($de, $para);
+            }
+            $msg = 'Redirecionamentos';
+        }
+        update_option('cj_wix_final_idx', $i + 1, false);
+        return ['continuar' => true, 'mensagem' => "Etapa final ($i/" . count($itens) . "): $msg. Não feche esta página."];
+    }
+
+    private static function import_edicao(array $e, array $d, array $o): void
+    {
+        $slug = $e['slug'];
+        $term = get_term_by('slug', $slug, 'cj_edicao');
+        if (!$term) {
+            $new  = wp_insert_term('Número ' . sprintf('%02d', $e['numero']), 'cj_edicao', ['slug' => $slug]);
+            $term = is_wp_error($new) ? null : get_term($new['term_id'], 'cj_edicao');
+        }
+        if (!$term) {
+            return;
+        }
+        $tid = (int) $term->term_id;
+        update_term_meta($tid, 'cj_numero', (int) $e['numero']);
+        update_term_meta($tid, 'cj_periodo', $e['mes'] . ' de ' . $e['ano'] . ($e['nota'] ? ' · ' . $e['nota'] : ''));
+        if ($o['imagens']) {
+            if ($e['pdf'] && !get_term_meta($tid, 'cj_pdf', true) && ($pdf = self::sideload($e['pdf'], 0, 'Revista Capital Jurídico, nº ' . $e['numero']))) {
+                update_term_meta($tid, 'cj_pdf', $pdf);
+            }
+            if ($e['capa'] && !get_term_meta($tid, 'cj_capa', true) && ($capa = self::sideload($e['capa'], 0, 'Capa — Revista Capital Jurídico, nº ' . $e['numero']))) {
+                update_term_meta($tid, 'cj_capa', $capa);
+            }
+        }
+        $slugs = $e['artigos'];
+        foreach (($d['artigos_por_data'] ?? []) as $dia => $num) {
+            if ((int) $num === (int) $e['numero']) {
+                $ids = get_posts(['post_type' => 'post', 'post_status' => 'any', 'numberposts' => -1, 'fields' => 'ids',
+                    'date_query' => [['year' => (int) substr($dia, 0, 4), 'month' => (int) substr($dia, 5, 2), 'day' => (int) substr($dia, 8, 2)]]]);
+                foreach ($ids as $id) {
+                    $slugs[] = (string) get_post_meta($id, '_cj_slug_wix', true);
+                }
+            }
+        }
+        foreach (array_filter(array_unique($slugs)) as $sl) {
+            $found = get_posts(['post_type' => 'post', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'meta_key' => '_cj_slug_wix', 'meta_value' => $sl]);
+            if ($found) {
+                wp_set_object_terms((int) $found[0], [$tid], 'cj_edicao', true);
+            }
+        }
+    }
+
+    private static function import_livro(array $l, array $o): void
+    {
+        $existe = get_posts(['post_type' => 'cj_livro', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'title' => $l['titulo']]);
+        if ($existe) {
+            return; // nunca sobrescreve um livro já cadastrado ou editado
+        }
+        $id = wp_insert_post(wp_slash([
+            'post_type' => 'cj_livro', 'post_status' => 'publish', 'post_title' => $l['titulo'],
+            'post_content' => '<p>' . esc_html($l['sinopse']) . '</p>', 'post_excerpt' => $l['sinopse'],
+        ]));
+        if (!$id) {
+            return;
+        }
+        foreach (['_cj_autores' => $l['autores'] ?? '', '_cj_ano' => $l['ano'] ?? '', '_cj_digital_status' => $l['digital'] ?? '', '_cj_impresso_status' => $l['impresso'] ?? ''] as $k => $v) {
+            if ($v !== '') {
+                update_post_meta($id, $k, $v);
+            }
+        }
+        if ($o['imagens']) {
+            if (!empty($l['arquivo']) && ($arq = self::sideload($l['arquivo'], $id))) {
+                update_post_meta($id, '_cj_digital_arquivo', $arq);
+            }
+            if (!empty($l['capa']) && ($capa = self::sideload($l['capa'], $id))) {
+                set_post_thumbnail($id, $capa);
+            }
+        }
     }
 
     /* ------------------------------------------------------------------ */
@@ -782,7 +949,8 @@ class CJ_Importador_Wix
         $offset = (int) get_transient('cj_wix_verify_offset');
         $rows = $wpdb->get_results($wpdb->prepare("SELECT id, path FROM $t ORDER BY id LIMIT %d, 15", $offset), ARRAY_A);
         foreach ($rows as $row) {
-            $r = wp_remote_head(home_url($row['path']), ['timeout' => 15, 'redirection' => 0, 'sslverify' => false]);
+            $url = home_url(preg_replace_callback('#[^\x21-\x7E]+#', fn($m) => rawurlencode($m[0]), rawurldecode($row['path'])));
+            $r = wp_remote_head($url, ['timeout' => 15, 'redirection' => 0, 'sslverify' => false]);
             if (is_wp_error($r)) {
                 $res = 'falha: ' . $r->get_error_message();
             } else {
