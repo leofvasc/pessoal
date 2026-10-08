@@ -1,0 +1,811 @@
+<?php
+/**
+ * Importador do site antigo (Wix).
+ *
+ * Etapas, executadas pelo painel Ferramentas → Importar do Wix:
+ *  1. Ler o sitemap do Wix e registrar todos os endereços.
+ *  2. Importar, em pequenos lotes: cada /post/slug vira um artigo do WordPress
+ *     com o MESMO slug, a mesma data, o mesmo título e a mesma descrição de SEO,
+ *     com as imagens e PDFs copiados para a biblioteca de mídia. Das demais
+ *     páginas são guardados os metadados de SEO (aplicados à página de mesmo
+ *     endereço no WordPress, quando existir).
+ *  3. Verificar: confere se cada endereço antigo responde no site novo.
+ *  4. Baixar o relatório (CSV) para arquivamento.
+ *
+ * Rode a importação ANTES de apontar o domínio para a Hostinger, enquanto o
+ * Wix ainda responde em www.revistacapitaljuridico.com.br.
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class CJ_Importador_Wix
+{
+    private const LOTE = 2;
+    private const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 CapitalJuridicoMigracao/1.0';
+
+    /** Elementos do Wix que não fazem parte do texto do artigo. */
+    private const HOOKS_DESCARTE = [
+        'post-title', 'post-metadata', 'post-footer', 'post-social-actions', 'share-buttons', 'like-button',
+        'post-main-actions', 'related-posts', 'recent-posts', 'post-categories-list', 'post-tags', 'tag-list',
+        'post-header', 'more-button', 'comments', 'post-page-comments', 'post-stats', 'avatar',
+    ];
+
+    public static function init(): void
+    {
+        add_action('admin_menu', [__CLASS__, 'menu']);
+        add_action('wp_ajax_cj_wix', [__CLASS__, 'ajax']);
+        add_action('admin_post_cj_wix_csv', [__CLASS__, 'csv']);
+    }
+
+    public static function table(): string
+    {
+        global $wpdb;
+        return $wpdb->prefix . 'cj_importacao';
+    }
+
+    public static function install_tables(): void
+    {
+        global $wpdb;
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $t = self::table();
+        dbDelta("CREATE TABLE $t (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            url varchar(700) NOT NULL,
+            path varchar(600) NOT NULL,
+            tipo varchar(20) NOT NULL,
+            lastmod varchar(40) NOT NULL DEFAULT '',
+            status varchar(20) NOT NULL DEFAULT 'pendente',
+            wp_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            metodo varchar(40) NOT NULL DEFAULT '',
+            caracteres int(10) unsigned NOT NULL DEFAULT 0,
+            imagens int(10) unsigned NOT NULL DEFAULT 0,
+            seo_title text NULL,
+            seo_desc text NULL,
+            seo_image text NULL,
+            robots varchar(100) NOT NULL DEFAULT '',
+            mensagem text NULL,
+            http_novo varchar(60) NOT NULL DEFAULT '',
+            atualizado datetime NULL,
+            PRIMARY KEY  (id),
+            KEY path (path(191))
+        ) {$wpdb->get_charset_collate()};");
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Painel                                                              */
+    /* ------------------------------------------------------------------ */
+
+    public static function menu(): void
+    {
+        add_management_page('Importar do Wix', 'Importar do Wix', 'manage_options', 'cj-importar-wix', [__CLASS__, 'page']);
+    }
+
+    public static function page(): void
+    {
+        global $wpdb;
+        self::install_tables();
+        $t = self::table();
+        $site = get_option('cj_wix_site', 'https://www.revistacapitaljuridico.com.br');
+        $counts = $wpdb->get_results("SELECT tipo, status, COUNT(*) n FROM $t GROUP BY tipo, status", ARRAY_A);
+        $rows = $wpdb->get_results("SELECT * FROM $t ORDER BY tipo DESC, path ASC LIMIT 1000", ARRAY_A);
+        $nonce = wp_create_nonce('cj_wix');
+        ?>
+        <div class="wrap cj-import">
+            <h1>Importar do site antigo (Wix)</h1>
+            <p>Faça a importação <strong>antes</strong> de apontar o domínio para a Hostinger, enquanto o site do Wix ainda está no ar. Ela pode ser repetida: artigos já importados são atualizados, não duplicados.</p>
+            <table class="form-table" role="presentation">
+                <tr><th><label for="cj-site">Endereço do site no Wix</label></th>
+                    <td><input type="url" id="cj-site" class="regular-text" value="<?php echo esc_attr($site); ?>">
+                        <p class="description">Se o domínio já tiver sido transferido, use o endereço gratuito do Wix (ex.: https://usuario.wixsite.com/revista).</p></td></tr>
+                <tr><th>Opções</th><td>
+                    <label><input type="checkbox" id="cj-imagens" checked> Copiar imagens e PDFs para a biblioteca de mídia</label><br>
+                    <label><input type="checkbox" id="cj-paginas" checked> Aplicar título e descrição de SEO às páginas de mesmo endereço</label><br>
+                    <label><input type="checkbox" id="cj-rascunho"> Importar artigos como rascunho (para revisar antes de publicar)</label>
+                </td></tr>
+            </table>
+            <p>
+                <button class="button button-primary" data-acao="sitemap">1. Ler sitemap</button>
+                <button class="button button-primary" data-acao="importar">2. Importar pendentes</button>
+                <button class="button" data-acao="verificar">3. Verificar endereços no site novo</button>
+                <a class="button" href="<?php echo esc_url(admin_url('admin-post.php?action=cj_wix_csv&_wpnonce=' . $nonce)); ?>">4. Baixar relatório (CSV)</a>
+                <button class="button-link-delete" data-acao="refazer" style="margin-left:12px">Marcar tudo para reimportar</button>
+            </p>
+            <div id="cj-progresso" class="notice notice-info inline" style="display:none"><p></p></div>
+            <h2>Situação</h2>
+            <p><?php
+            if (!$counts) {
+                echo 'Nada registrado ainda.';
+            }
+            foreach ($counts as $c) {
+                echo esc_html($c['tipo'] . ' · ' . $c['status'] . ': ' . $c['n']) . '<br>';
+            }
+            ?></p>
+            <table class="widefat striped">
+                <thead><tr><th>Endereço antigo</th><th>Tipo</th><th>Situação</th><th>Extração</th><th>No WordPress</th><th>Verificação</th><th>Observação</th></tr></thead>
+                <tbody>
+                <?php foreach ($rows as $r) : ?>
+                    <tr>
+                        <td><a href="<?php echo esc_url($r['url']); ?>" target="_blank" rel="noopener"><?php echo esc_html($r['path']); ?></a></td>
+                        <td><?php echo esc_html($r['tipo']); ?></td>
+                        <td><?php echo esc_html($r['status']); ?></td>
+                        <td><?php echo $r['metodo'] ? esc_html($r['metodo'] . ' · ' . number_format_i18n((int) $r['caracteres']) . ' car. · ' . (int) $r['imagens'] . ' img') : ''; ?></td>
+                        <td><?php echo $r['wp_id'] ? '<a href="' . esc_url(get_edit_post_link((int) $r['wp_id'])) . '">editar</a> · <a href="' . esc_url(get_permalink((int) $r['wp_id'])) . '" target="_blank">ver</a>' : ''; ?></td>
+                        <td><?php echo esc_html($r['http_novo']); ?></td>
+                        <td><?php echo esc_html((string) $r['mensagem']); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <script>
+        (function () {
+            const nonce = <?php echo wp_json_encode($nonce); ?>;
+            const box = document.getElementById('cj-progresso');
+            const msg = box.querySelector('p');
+            function opts() {
+                return {
+                    site: document.getElementById('cj-site').value,
+                    imagens: document.getElementById('cj-imagens').checked ? 1 : 0,
+                    paginas: document.getElementById('cj-paginas').checked ? 1 : 0,
+                    rascunho: document.getElementById('cj-rascunho').checked ? 1 : 0,
+                };
+            }
+            async function call(acao) {
+                const body = new URLSearchParams({ action: 'cj_wix', acao, _wpnonce: nonce, ...opts() });
+                const r = await fetch(ajaxurl, { method: 'POST', body });
+                return r.json();
+            }
+            document.querySelectorAll('.cj-import [data-acao]').forEach(btn => btn.addEventListener('click', async e => {
+                e.preventDefault();
+                const acao = btn.dataset.acao;
+                if (acao === 'refazer' && !confirm('Marcar todos os endereços para importar de novo?')) return;
+                document.querySelectorAll('.cj-import [data-acao]').forEach(b => b.disabled = true);
+                box.style.display = 'block';
+                try {
+                    let res;
+                    do {
+                        res = await call(acao);
+                        msg.textContent = res.data && res.data.mensagem ? res.data.mensagem : 'Erro inesperado.';
+                    } while (res.success && res.data.continuar);
+                    if (res.success) setTimeout(() => location.reload(), 1200);
+                } catch (err) {
+                    msg.textContent = 'A conexão falhou. Clique de novo para continuar de onde parou.';
+                }
+                document.querySelectorAll('.cj-import [data-acao]').forEach(b => b.disabled = false);
+            }));
+        })();
+        </script>
+        <?php
+    }
+
+    public static function ajax(): void
+    {
+        if (!current_user_can('manage_options') || !check_ajax_referer('cj_wix', '_wpnonce', false)) {
+            wp_send_json_error(['mensagem' => 'Sem permissão.']);
+        }
+        @set_time_limit(300);
+        $site = untrailingslashit(esc_url_raw(wp_unslash($_POST['site'] ?? '')));
+        if ($site) {
+            update_option('cj_wix_site', $site, false);
+        }
+        $o = [
+            'site'     => $site,
+            'imagens'  => !empty($_POST['imagens']),
+            'paginas'  => !empty($_POST['paginas']),
+            'rascunho' => !empty($_POST['rascunho']),
+        ];
+        switch (sanitize_key($_POST['acao'] ?? '')) {
+            case 'sitemap':
+                wp_send_json_success(self::step_sitemap($o));
+            case 'importar':
+                wp_send_json_success(self::step_import($o));
+            case 'verificar':
+                wp_send_json_success(self::step_verify());
+            case 'refazer':
+                global $wpdb;
+                $wpdb->query('UPDATE ' . self::table() . " SET status = 'pendente'");
+                wp_send_json_success(['mensagem' => 'Todos os endereços voltaram para "pendente".']);
+        }
+        wp_send_json_error(['mensagem' => 'Ação desconhecida.']);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Etapa 1 — sitemap                                                   */
+    /* ------------------------------------------------------------------ */
+
+    private static function fetch(string $url, int $timeout = 30): array
+    {
+        $r = wp_remote_get($url, ['timeout' => $timeout, 'redirection' => 5, 'user-agent' => self::UA, 'headers' => ['Accept-Language' => 'pt-BR,pt;q=0.9']]);
+        if (is_wp_error($r)) {
+            return ['code' => 0, 'body' => '', 'erro' => $r->get_error_message()];
+        }
+        return ['code' => (int) wp_remote_retrieve_response_code($r), 'body' => (string) wp_remote_retrieve_body($r), 'erro' => ''];
+    }
+
+    private static function step_sitemap(array $o): array
+    {
+        global $wpdb;
+        $t = self::table();
+        $fila = [$o['site'] . '/sitemap.xml'];
+        $vistos = [];
+        $urls = [];
+        while ($fila && count($vistos) < 60) {
+            $sm = array_shift($fila);
+            if (isset($vistos[$sm])) {
+                continue;
+            }
+            $vistos[$sm] = true;
+            $r = self::fetch($sm);
+            if ($r['code'] !== 200) {
+                return ['mensagem' => "Não foi possível ler $sm (HTTP {$r['code']} {$r['erro']})."];
+            }
+            $xml = @simplexml_load_string($r['body']);
+            if (!$xml) {
+                continue;
+            }
+            $xml->registerXPathNamespace('s', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+            foreach ($xml->xpath('//s:sitemap/s:loc') ?: [] as $loc) {
+                $fila[] = trim((string) $loc);
+            }
+            foreach ($xml->xpath('//s:url') ?: [] as $u) {
+                $loc = trim((string) $u->loc);
+                $urls[$loc] = trim((string) $u->lastmod);
+            }
+        }
+        $novos = 0;
+        foreach ($urls as $loc => $lastmod) {
+            $path = self::path_of($loc);
+            $tipo = preg_match('#^/post/#', $path) ? 'artigo' : (preg_match('#^/blog/(categories|hashtags)/#', $path) ? 'categoria' : 'pagina');
+            $existe = $wpdb->get_var($wpdb->prepare("SELECT id FROM $t WHERE path = %s", $path));
+            if ($existe) {
+                $wpdb->update($t, ['url' => $loc, 'lastmod' => $lastmod], ['id' => $existe]);
+            } else {
+                $wpdb->insert($t, ['url' => $loc, 'path' => $path, 'tipo' => $tipo, 'lastmod' => $lastmod, 'status' => 'pendente']);
+                $novos++;
+            }
+        }
+        return ['mensagem' => sprintf('%d endereços encontrados em %d sitemaps (%d novos).', count($urls), count($vistos), $novos)];
+    }
+
+    private static function path_of(string $url): string
+    {
+        $p = (string) wp_parse_url($url, PHP_URL_PATH);
+        return $p === '' ? '/' : $p;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Etapa 2 — importação                                                */
+    /* ------------------------------------------------------------------ */
+
+    private static function step_import(array $o): array
+    {
+        global $wpdb;
+        $t = self::table();
+        $rows = $wpdb->get_results("SELECT * FROM $t WHERE status = 'pendente' ORDER BY tipo = 'artigo' DESC, id ASC LIMIT " . self::LOTE, ARRAY_A);
+        foreach ($rows as $row) {
+            try {
+                $res = $row['tipo'] === 'artigo' ? self::import_post($row, $o) : self::import_page($row, $o);
+            } catch (Throwable $e) {
+                $res = ['status' => 'erro', 'mensagem' => $e->getMessage()];
+            }
+            $res['atualizado'] = current_time('mysql');
+            $wpdb->update($t, $res, ['id' => $row['id']]);
+        }
+        $restam = (int) $wpdb->get_var("SELECT COUNT(*) FROM $t WHERE status = 'pendente'");
+        return ['continuar' => $rows && $restam > 0, 'mensagem' => $restam ? "Importando… faltam $restam endereços. Não feche esta página." : 'Importação concluída.'];
+    }
+
+    private static function dom(string $html): DOMDocument
+    {
+        $doc = new DOMDocument();
+        libxml_use_internal_errors(true);
+        $doc->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_NONET | LIBXML_COMPACT);
+        libxml_clear_errors();
+        return $doc;
+    }
+
+    /** Lê título, descrição, imagem, robots e JSON-LD do <head>. */
+    private static function head_meta(DOMDocument $doc): array
+    {
+        $x = new DOMXPath($doc);
+        $m = ['title' => '', 'desc' => '', 'og_title' => '', 'og_desc' => '', 'og_image' => '', 'robots' => '', 'published' => '', 'modified' => '', 'jsonld' => []];
+        $title = $x->query('//title')->item(0);
+        $m['title'] = $title ? trim($title->textContent) : '';
+        foreach ($x->query('//meta') as $meta) {
+            $k = strtolower($meta->getAttribute('name') ?: $meta->getAttribute('property'));
+            $v = trim($meta->getAttribute('content'));
+            match ($k) {
+                'description'            => $m['desc'] = $v,
+                'og:title'               => $m['og_title'] = $v,
+                'og:description'         => $m['og_desc'] = $v,
+                'og:image'               => $m['og_image'] = $m['og_image'] ?: $v,
+                'robots'                 => $m['robots'] = $v,
+                'article:published_time' => $m['published'] = $v,
+                'article:modified_time'  => $m['modified'] = $v,
+                default                  => null,
+            };
+        }
+        foreach ($x->query('//script[@type="application/ld+json"]') as $s) {
+            $j = json_decode(trim($s->textContent), true);
+            if (!is_array($j)) {
+                continue;
+            }
+            $items = isset($j['@graph']) ? $j['@graph'] : (array_is_list($j) ? $j : [$j]);
+            foreach ($items as $it) {
+                if (is_array($it)) {
+                    $m['jsonld'][] = $it;
+                }
+            }
+        }
+        return $m;
+    }
+
+    private static function article_ld(array $jsonld): array
+    {
+        foreach ($jsonld as $it) {
+            $type = (array) ($it['@type'] ?? []);
+            if (array_intersect($type, ['BlogPosting', 'Article', 'NewsArticle', 'ScholarlyArticle'])) {
+                return $it;
+            }
+        }
+        return [];
+    }
+
+    /** Localiza o corpo do artigo no HTML do Wix, do seletor mais preciso ao mais genérico. */
+    private static function find_body(DOMDocument $doc): array
+    {
+        $x = new DOMXPath($doc);
+        $candidatos = [
+            'post-description' => '//*[@data-hook="post-description"]',
+            'content-viewer'   => '//*[@data-id="content-viewer"]',
+            'rich-content'     => '//*[@data-id="rich-content-viewer"]',
+            'ricos-viewer'     => '//*[@data-hook="ricos-viewer"]',
+            'article'          => '//article',
+        ];
+        foreach ($candidatos as $nome => $q) {
+            $nodes = $x->query($q);
+            $best = null;
+            foreach ($nodes as $n) {
+                if (!$best || strlen($n->textContent) > strlen($best->textContent)) {
+                    $best = $n;
+                }
+            }
+            if ($best && mb_strlen(trim($best->textContent)) > 200) {
+                return [$nome, $best];
+            }
+        }
+        return ['', null];
+    }
+
+    /** Converte o HTML do Wix em HTML limpo e semântico. */
+    private static function clean(DOMNode $node, DOMDocument $doc): string
+    {
+        $x = new DOMXPath($doc);
+        foreach (['.//script', './/style', './/noscript', './/svg', './/button', './/form', './/nav', './/input', './/template'] as $q) {
+            foreach (iterator_to_array($x->query($q, $node)) as $n) {
+                $n->parentNode?->removeChild($n);
+            }
+        }
+        foreach (iterator_to_array($x->query('.//*[@data-hook]', $node)) as $n) {
+            if (in_array($n->getAttribute('data-hook'), self::HOOKS_DESCARTE, true)) {
+                $n->parentNode?->removeChild($n);
+            }
+        }
+        // Título repetido dentro do corpo.
+        foreach (iterator_to_array($x->query('.//h1', $node)) as $n) {
+            $n->parentNode?->removeChild($n);
+        }
+        // Imagens: a versão nítida do Wix fica em data-pin-media; o src costuma ser uma miniatura borrada.
+        foreach (iterator_to_array($x->query('.//img', $node)) as $img) {
+            $src = $img->getAttribute('data-pin-media') ?: $img->getAttribute('data-src') ?: $img->getAttribute('src');
+            $img->setAttribute('src', self::wix_original($src));
+        }
+        // Vídeos incorporados viram link.
+        foreach (iterator_to_array($x->query('.//iframe', $node)) as $f) {
+            $src = $f->getAttribute('src');
+            if ($src && preg_match('#youtube\.com|youtu\.be|vimeo\.com#', $src)) {
+                $p = $doc->createElement('p');
+                $p->appendChild($doc->createTextNode($src));
+                $f->parentNode->replaceChild($p, $f);
+            } else {
+                $f->parentNode?->removeChild($f);
+            }
+        }
+
+        $html = '';
+        foreach ($node->childNodes as $child) {
+            $html .= $doc->saveHTML($child);
+        }
+        $allowed = [
+            'p' => [], 'br' => [], 'h2' => [], 'h3' => [], 'h4' => [], 'h5' => [], 'h6' => [],
+            'strong' => [], 'b' => [], 'em' => [], 'i' => [], 'u' => [], 's' => [], 'sup' => [], 'sub' => [], 'mark' => [],
+            'ul' => [], 'ol' => ['start' => true], 'li' => [], 'blockquote' => [], 'pre' => [], 'code' => [], 'hr' => [],
+            'a' => ['href' => true], 'img' => ['src' => true, 'alt' => true],
+            'figure' => [], 'figcaption' => [],
+            'table' => [], 'thead' => [], 'tbody' => [], 'tr' => [], 'th' => ['colspan' => true, 'rowspan' => true], 'td' => ['colspan' => true, 'rowspan' => true],
+        ];
+        $html = wp_kses($html, $allowed);
+        $html = preg_replace('#<p>(?:\s|&nbsp;|\xC2\xA0|<br\s*/?>)*</p>#u', '', $html);
+        $html = preg_replace('#(\s*\n){3,}#', "\n\n", $html);
+        return trim($html);
+    }
+
+    /** Endereço da imagem original no servidor de mídia do Wix (sem redimensionamento). */
+    private static function wix_original(string $src): string
+    {
+        if (preg_match('#^(https?://[^/]+/media/[^/]+?\.(?:jpe?g|png|gif|webp|avif))(?:/v1/.*)?$#i', $src, $m)) {
+            return $m[1];
+        }
+        return $src;
+    }
+
+    /** Copia um arquivo remoto para a biblioteca de mídia (uma única vez por endereço). */
+    private static function sideload(string $url, int $post_id, string $desc = ''): int
+    {
+        if (!$url || !preg_match('#^https?://#', $url)) {
+            return 0;
+        }
+        $found = get_posts(['post_type' => 'attachment', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'meta_key' => '_cj_origem', 'meta_value' => $url]);
+        if ($found) {
+            return (int) $found[0];
+        }
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+        $tmp = download_url($url, 60);
+        if (is_wp_error($tmp)) {
+            return 0;
+        }
+        $name = sanitize_file_name(rawurldecode(basename((string) wp_parse_url($url, PHP_URL_PATH))));
+        if (!preg_match('/\.[a-z0-9]{2,5}$/i', $name)) {
+            $mime = wp_get_image_mime($tmp) ?: mime_content_type($tmp);
+            $ext  = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp', 'application/pdf' => 'pdf'][$mime] ?? 'bin';
+            $name .= '.' . $ext;
+        }
+        $id = media_handle_sideload(['name' => $name, 'tmp_name' => $tmp], $post_id, $desc);
+        if (is_wp_error($id)) {
+            @unlink($tmp);
+            return 0;
+        }
+        update_post_meta($id, '_cj_origem', $url);
+        return (int) $id;
+    }
+
+    /** Domínios onde o Wix guarda mídia (expressão regular, filtrável). */
+    private static function media_hosts(): string
+    {
+        return (string) apply_filters('cj_wix_media_hosts', 'wixstatic\.com|wixmp\.com|usrfiles\.com|filesusr\.com');
+    }
+
+    /** Copia imagens e PDFs hospedados no Wix e reescreve os endereços no HTML. */
+    private static function localize_media(string $html, int $post_id, int &$count): string
+    {
+        $hosts = self::media_hosts();
+        $html = preg_replace_callback('#<img([^>]*?)src="([^"]+)"#i', function ($m) use ($post_id, &$count, $hosts) {
+            $src = html_entity_decode($m[2]);
+            if (!preg_match('#' . $hosts . '#', $src)) {
+                return $m[0];
+            }
+            $id = self::sideload($src, $post_id);
+            if (!$id) {
+                return $m[0];
+            }
+            $count++;
+            return '<img' . $m[1] . 'class="wp-image-' . $id . '" src="' . esc_url(wp_get_attachment_url($id)) . '"';
+        }, $html);
+        return preg_replace_callback('#href="([^"]+)"#i', function ($m) use ($post_id, $hosts) {
+            $href = html_entity_decode($m[1]);
+            if (!preg_match('#(?:' . $hosts . ')/[^"]*\.(?:pdf|docx?|epub)(?:\?|$)#i', $href)) {
+                return $m[0];
+            }
+            $id = self::sideload($href, $post_id);
+            return $id ? 'href="' . esc_url(wp_get_attachment_url($id)) . '"' : $m[0];
+        }, $html);
+    }
+
+    private static function taxonomies_from_links(DOMDocument $doc, ?DOMNode $scope): array
+    {
+        $x = new DOMXPath($doc);
+        $cats = [];
+        $tags = [];
+        // Procura primeiro perto do artigo; o menu geral do blog lista todas as categorias e não serve.
+        $context = $scope ? ($x->query('ancestor::*[.//a[contains(@href,"/blog/categories/")]][1]', $scope)->item(0) ?? $scope) : null;
+        if (!$context) {
+            return [[], []];
+        }
+        foreach ($x->query('.//a[contains(@href,"/blog/categories/") or contains(@href,"/blog/hashtags/")]', $context) as $a) {
+            $href = $a->getAttribute('href');
+            $name = trim($a->textContent);
+            if (!preg_match('#/blog/(categories|hashtags)/([^/?\#]+)#', $href, $m) || $name === '') {
+                continue;
+            }
+            if ($m[1] === 'categories') {
+                $cats[rawurldecode($m[2])] = $name;
+            } else {
+                $tags[rawurldecode($m[2])] = ltrim($name, '#');
+            }
+        }
+        // Se a página trouxer muitas categorias, é o menu geral: descarta.
+        return [count($cats) > 6 ? [] : $cats, count($tags) > 20 ? [] : $tags];
+    }
+
+    private static function import_post(array $row, array $o): array
+    {
+        $r = self::fetch($row['url']);
+        if ($r['code'] !== 200 || $r['body'] === '') {
+            return ['status' => 'erro', 'mensagem' => "HTTP {$r['code']} {$r['erro']}"];
+        }
+        $doc  = self::dom($r['body']);
+        $meta = self::head_meta($doc);
+        $ld   = self::article_ld($meta['jsonld']);
+
+        [$metodo, $node] = self::find_body($doc);
+        [$cats, $tags] = self::taxonomies_from_links($doc, $node);
+        $content = $node ? self::clean($node, $doc) : '';
+        if ($content === '' && !empty($ld['articleBody'])) {
+            $metodo  = 'json-ld';
+            $content = wpautop(esc_html($ld['articleBody']));
+        }
+        if ($content === '') {
+            return ['status' => 'erro', 'mensagem' => 'Texto do artigo não localizado no HTML.', 'seo_title' => $meta['title'], 'seo_desc' => $meta['desc']];
+        }
+
+        $slug_wix = rawurldecode(preg_replace('#^/post/#', '', rtrim($row['path'], '/')));
+        $titulo = trim(html_entity_decode((string) ($ld['headline'] ?? '')), " \t\n") ?: ($meta['og_title'] ?: preg_replace('/\s+[|\-–]\s+[^|\-–]+$/u', '', $meta['title']));
+        $data = $ld['datePublished'] ?? $meta['published'] ?: $row['lastmod'];
+        $mod  = $ld['dateModified'] ?? $meta['modified'] ?: $data;
+        $autor = '';
+        if (!empty($ld['author'])) {
+            $autores = isset($ld['author']['name']) ? [$ld['author']] : (array) $ld['author'];
+            $autor = implode('; ', array_filter(array_map(fn($a) => is_array($a) ? ($a['name'] ?? '') : (string) $a, $autores)));
+        }
+
+        $existing = get_posts(['post_type' => 'post', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'meta_key' => '_cj_url_wix', 'meta_value' => $row['url']]);
+        if (!$existing) {
+            $existing = get_posts(['post_type' => 'post', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'name' => sanitize_title($slug_wix)]);
+        }
+        $gmt = $data ? gmdate('Y-m-d H:i:s', strtotime($data)) : current_time('mysql', true);
+        $gmt_mod = $mod ? gmdate('Y-m-d H:i:s', strtotime($mod)) : $gmt;
+        $postarr = [
+            'ID'            => $existing ? (int) $existing[0] : 0,
+            'post_type'     => 'post',
+            'post_status'   => $o['rascunho'] ? 'draft' : 'publish',
+            'post_title'    => wp_strip_all_tags($titulo),
+            'post_content'  => $content,
+            'post_excerpt'  => $meta['desc'] ?: $meta['og_desc'],
+            'post_name'     => $slug_wix,
+            'post_date_gmt' => $gmt,
+            'post_date'     => get_date_from_gmt($gmt),
+            'post_author'   => get_current_user_id(),
+        ];
+        $post_id = wp_insert_post(wp_slash($postarr), true);
+        if (is_wp_error($post_id)) {
+            return ['status' => 'erro', 'mensagem' => $post_id->get_error_message()];
+        }
+
+        // O WordPress remove acentos do slug ao salvar; o slug do Wix é regravado exatamente como era.
+        global $wpdb;
+        $desejado = sanitize_title_with_dashes($slug_wix, '', 'save');
+        $wpdb->update($wpdb->posts, ['post_name' => $desejado, 'post_modified_gmt' => $gmt_mod, 'post_modified' => get_date_from_gmt($gmt_mod)], ['ID' => $post_id]);
+        clean_post_cache($post_id);
+        $obs = [];
+        if (get_post_field('post_name', $post_id) !== $desejado) {
+            $obs[] = 'slug ajustado pelo WordPress; redirecionamento automático ativo';
+        }
+
+        $imgs = 0;
+        if ($o['imagens']) {
+            $novo = self::localize_media($content, $post_id, $imgs);
+            if ($novo !== $content) {
+                $wpdb->update($wpdb->posts, ['post_content' => $novo], ['ID' => $post_id]);
+                clean_post_cache($post_id);
+            }
+            $capa = $meta['og_image'] ?: (is_string($ld['image'] ?? null) ? $ld['image'] : ($ld['image']['url'] ?? ''));
+            if ($capa && ($thumb = self::sideload(self::wix_original($capa), $post_id))) {
+                set_post_thumbnail($post_id, $thumb);
+            }
+        }
+
+        $metas = [
+            '_cj_url_wix'      => $row['url'],
+            '_cj_slug_wix'     => $slug_wix,
+            '_cj_seo_title'    => $meta['title'],
+            '_cj_seo_desc'     => $meta['desc'] ?: $meta['og_desc'],
+            '_cj_autor_artigo' => $autor,
+            '_cj_wix_jsonld'   => $meta['jsonld'] ? wp_json_encode($meta['jsonld'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '',
+            // Cópia para plugins de SEO, caso algum venha a ser instalado.
+            '_yoast_wpseo_title'    => $meta['title'],
+            '_yoast_wpseo_metadesc' => $meta['desc'],
+            'rank_math_title'       => $meta['title'],
+            'rank_math_description' => $meta['desc'],
+        ];
+        foreach ($metas as $k => $v) {
+            if ($v !== '') {
+                update_post_meta($post_id, $k, wp_slash($v));
+            }
+        }
+        if (stripos($meta['robots'], 'noindex') !== false) {
+            update_post_meta($post_id, '_cj_seo_noindex', '1');
+            $obs[] = 'estava como noindex no Wix';
+        }
+
+        self::assign_terms($post_id, $cats, $tags);
+
+        if (mb_strlen(wp_strip_all_tags($content)) < 1500) {
+            $obs[] = 'texto curto: conferir se o artigo veio completo';
+        }
+        return [
+            'status'     => 'importado',
+            'wp_id'      => $post_id,
+            'metodo'     => $metodo,
+            'caracteres' => mb_strlen(wp_strip_all_tags($content)),
+            'imagens'    => $imgs,
+            'seo_title'  => $meta['title'],
+            'seo_desc'   => $meta['desc'],
+            'seo_image'  => $meta['og_image'],
+            'robots'     => $meta['robots'],
+            'mensagem'   => implode('; ', $obs),
+        ];
+    }
+
+    /** Cria categorias e hashtags com os mesmos slugs do Wix e detecta o número da edição. */
+    private static function assign_terms(int $post_id, array $cats, array $tags): void
+    {
+        $cat_ids = [];
+        foreach ($cats as $slug => $name) {
+            $term = get_term_by('slug', sanitize_title_with_dashes($slug, '', 'save'), 'category') ?: get_term_by('name', $name, 'category');
+            if (!$term) {
+                $new = wp_insert_term($name, 'category', ['slug' => sanitize_title_with_dashes($slug, '', 'save')]);
+                $term = is_wp_error($new) ? null : get_term($new['term_id'], 'category');
+            }
+            if ($term) {
+                $cat_ids[] = (int) $term->term_id;
+            }
+            if (preg_match('/(?:edi[çc][ãa]o|n[úu]mero|n\.?\s*[ºo°])\s*0*(\d{1,3})/iu', $name, $m)) {
+                $n = (int) $m[1];
+                $ed = get_term_by('slug', 'numero-' . sprintf('%02d', $n), 'cj_edicao');
+                if (!$ed) {
+                    $new = wp_insert_term('Número ' . sprintf('%02d', $n), 'cj_edicao', ['slug' => 'numero-' . sprintf('%02d', $n)]);
+                    if (!is_wp_error($new)) {
+                        update_term_meta($new['term_id'], 'cj_numero', $n);
+                        $ed = get_term($new['term_id'], 'cj_edicao');
+                    }
+                }
+                if ($ed) {
+                    wp_set_object_terms($post_id, [(int) $ed->term_id], 'cj_edicao', true);
+                }
+            }
+        }
+        if ($cat_ids) {
+            wp_set_post_categories($post_id, $cat_ids, false);
+        }
+        foreach ($tags as $slug => $name) {
+            if (!get_term_by('slug', sanitize_title_with_dashes($slug, '', 'save'), 'post_tag')) {
+                wp_insert_term($name, 'post_tag', ['slug' => sanitize_title_with_dashes($slug, '', 'save')]);
+            }
+        }
+        if ($tags) {
+            wp_set_post_tags($post_id, array_values($tags), false);
+        }
+    }
+
+    private static function import_page(array $row, array $o): array
+    {
+        $r = self::fetch($row['url']);
+        if ($r['code'] !== 200) {
+            return ['status' => 'erro', 'mensagem' => "HTTP {$r['code']} {$r['erro']}"];
+        }
+        $doc  = self::dom($r['body']);
+        $meta = self::head_meta($doc);
+        $out  = ['status' => 'registrado', 'seo_title' => $meta['title'], 'seo_desc' => $meta['desc'], 'seo_image' => $meta['og_image'], 'robots' => $meta['robots']];
+        $path = trim($row['path'], '/');
+
+        $target = 0;
+        $onde = '';
+        $paths = (array) get_option('cj_hotsite_paths', []);
+        if ($path === '') {
+            $target = (int) get_option('page_on_front');
+            $onde = 'página inicial';
+        } elseif (isset($paths[$path])) {
+            $target = (int) $paths[$path];
+            $onde = 'hotsite';
+        } elseif ($page = get_page_by_path($path)) {
+            $target = $page->ID;
+            $onde = 'página';
+        }
+
+        if ($target && $o['paginas']) {
+            $aplicados = [];
+            foreach (['_cj_seo_title' => $meta['title'], '_cj_seo_desc' => $meta['desc']] as $k => $v) {
+                if ($v !== '' && get_post_meta($target, $k, true) === '') {
+                    update_post_meta($target, $k, wp_slash($v));
+                    $aplicados[] = $k === '_cj_seo_title' ? 'título' : 'descrição';
+                }
+            }
+            if ($meta['og_image'] && $o['imagens'] && !get_post_meta($target, '_cj_seo_image', true)) {
+                if ($img = self::sideload(self::wix_original($meta['og_image']), $target)) {
+                    update_post_meta($target, '_cj_seo_image', $img);
+                    $aplicados[] = 'imagem';
+                }
+            }
+            $out['wp_id'] = $target;
+            $out['mensagem'] = $aplicados ? 'SEO aplicado à ' . $onde . ': ' . implode(', ', $aplicados) : 'SEO já preenchido na ' . $onde . '; mantido';
+        } elseif ($row['tipo'] === 'categoria') {
+            $out['mensagem'] = 'Endereço de categoria/hashtag: mantido automaticamente se algum artigo usar a categoria';
+        } else {
+            $out['mensagem'] = 'Não há página com este endereço no site novo: crie-a ou cadastre um redirecionamento';
+        }
+
+        // PDFs ligados na página (ex.: números anteriores da revista).
+        if ($o['imagens'] && preg_match_all('#href="([^"]*?(?:' . self::media_hosts() . ')/[^"]*?\.pdf[^"]*)"#i', $r['body'], $mm)) {
+            $n = 0;
+            foreach (array_unique($mm[1]) as $pdf) {
+                if (self::sideload(html_entity_decode($pdf), $target)) {
+                    $n++;
+                }
+            }
+            $out['mensagem'] .= "; $n PDF(s) copiados para a biblioteca de mídia";
+        }
+        return $out;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Etapa 3 — verificação                                               */
+    /* ------------------------------------------------------------------ */
+
+    private static function step_verify(): array
+    {
+        global $wpdb;
+        $t = self::table();
+        $offset = (int) get_transient('cj_wix_verify_offset');
+        $rows = $wpdb->get_results($wpdb->prepare("SELECT id, path FROM $t ORDER BY id LIMIT %d, 15", $offset), ARRAY_A);
+        foreach ($rows as $row) {
+            $r = wp_remote_head(home_url($row['path']), ['timeout' => 15, 'redirection' => 0, 'sslverify' => false]);
+            if (is_wp_error($r)) {
+                $res = 'falha: ' . $r->get_error_message();
+            } else {
+                $code = (int) wp_remote_retrieve_response_code($r);
+                $res = (string) $code;
+                if ($code >= 300 && $code < 400) {
+                    $res .= ' → ' . self::path_of((string) wp_remote_retrieve_header($r, 'location'));
+                }
+            }
+            $wpdb->update($t, ['http_novo' => substr($res, 0, 60)], ['id' => $row['id']]);
+        }
+        if (count($rows) < 15) {
+            delete_transient('cj_wix_verify_offset');
+            $falhas = (int) $wpdb->get_var("SELECT COUNT(*) FROM $t WHERE http_novo NOT LIKE '200%' AND http_novo NOT LIKE '301%'");
+            return ['continuar' => false, 'mensagem' => 'Verificação concluída. Endereços sem resposta 200/301: ' . $falhas . '.'];
+        }
+        set_transient('cj_wix_verify_offset', $offset + 15, HOUR_IN_SECONDS);
+        return ['continuar' => true, 'mensagem' => 'Verificando… ' . ($offset + 15) . ' endereços conferidos.'];
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Etapa 4 — relatório                                                 */
+    /* ------------------------------------------------------------------ */
+
+    public static function csv(): void
+    {
+        if (!current_user_can('manage_options') || !wp_verify_nonce(sanitize_key($_GET['_wpnonce'] ?? ''), 'cj_wix')) {
+            wp_die('Sem permissão.');
+        }
+        global $wpdb;
+        $rows = $wpdb->get_results('SELECT * FROM ' . self::table() . ' ORDER BY tipo DESC, path', ARRAY_A);
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="migracao-wix-' . gmdate('Y-m-d') . '.csv"');
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, ['url_antiga', 'caminho', 'tipo', 'situacao', 'url_nova', 'resposta_site_novo', 'titulo_seo', 'descricao_seo', 'imagem_seo', 'robots', 'metodo_extracao', 'caracteres', 'imagens', 'observacao'], ';');
+        foreach ($rows as $r) {
+            fputcsv($out, [
+                $r['url'], $r['path'], $r['tipo'], $r['status'], $r['wp_id'] ? get_permalink((int) $r['wp_id']) : '', $r['http_novo'],
+                $r['seo_title'], $r['seo_desc'], $r['seo_image'], $r['robots'], $r['metodo'], $r['caracteres'], $r['imagens'], $r['mensagem'],
+            ], ';');
+        }
+        fclose($out);
+        exit;
+    }
+}
