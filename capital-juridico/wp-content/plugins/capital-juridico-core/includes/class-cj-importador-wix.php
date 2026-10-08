@@ -238,6 +238,21 @@ class CJ_Importador_Wix
         return ['code' => $code, 'body' => (string) wp_remote_retrieve_body($r), 'erro' => '', 'location' => (string) wp_remote_retrieve_header($r, 'location')];
     }
 
+    /**
+     * Artigo importado a partir do slug original do Wix, com comparação exata:
+     * o MySQL considera "a-forca-…" e "a-força-…" iguais, mas são artigos diferentes.
+     */
+    public static function post_por_slug_wix(string $slug, string $status = 'any'): int
+    {
+        $ids = get_posts(['post_type' => 'post', 'post_status' => $status, 'numberposts' => -1, 'fields' => 'ids', 'meta_key' => '_cj_slug_wix', 'meta_value' => $slug]);
+        foreach ($ids as $id) {
+            if ((string) get_post_meta($id, '_cj_slug_wix', true) === $slug) {
+                return (int) $id;
+            }
+        }
+        return 0;
+    }
+
     /** Dados da migração (números da revista, livros, destino de cada página), em migracao-wix.json. */
     public static function dados(): array
     {
@@ -286,7 +301,13 @@ class CJ_Importador_Wix
         foreach ($urls as $loc => $lastmod) {
             $path = self::path_of($loc);
             $tipo = preg_match('#^/post/#', $path) ? 'artigo' : (preg_match('#^/(?:blog|artigos)/(categories|tags|hashtags)/#', $path) ? 'categoria' : 'pagina');
-            $existe = $wpdb->get_var($wpdb->prepare("SELECT id FROM $t WHERE path = %s", $path));
+            // O MySQL compara sem acento ("forca" = "força"): a escolha final é feita em PHP, byte a byte.
+            $existe = 0;
+            foreach ($wpdb->get_results($wpdb->prepare("SELECT id, path FROM $t WHERE path = %s", $path)) as $c) {
+                if ($c->path === $path) {
+                    $existe = (int) $c->id;
+                }
+            }
             if ($existe) {
                 $wpdb->update($t, ['url' => $loc, 'lastmod' => $lastmod], ['id' => $existe]);
             } else {
@@ -604,7 +625,7 @@ class CJ_Importador_Wix
         $existing = get_posts(['post_type' => 'post', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'meta_key' => '_cj_url_wix', 'meta_value' => $row['url']]);
         if (!$existing) {
             // Comparação exata do slug: o Wix tem artigos que diferem só no acento ("a-forca-…" e "a-força-…").
-            $existing = get_posts(['post_type' => 'post', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'meta_key' => '_cj_slug_wix', 'meta_value' => $slug_wix]);
+            $existing = array_filter([self::post_por_slug_wix($slug_wix)]);
         }
         $gmt = $data ? gmdate('Y-m-d H:i:s', strtotime($data)) : current_time('mysql', true);
         $gmt_mod = $mod ? gmdate('Y-m-d H:i:s', strtotime($mod)) : $gmt;
@@ -934,9 +955,8 @@ class CJ_Importador_Wix
             }
         }
         foreach (array_filter(array_unique($slugs)) as $sl) {
-            $found = get_posts(['post_type' => 'post', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'meta_key' => '_cj_slug_wix', 'meta_value' => $sl]);
-            if ($found) {
-                wp_set_object_terms((int) $found[0], [$tid], 'cj_edicao', true);
+            if ($found = self::post_por_slug_wix($sl)) {
+                wp_set_object_terms($found, [$tid], 'cj_edicao', true);
             }
         }
     }

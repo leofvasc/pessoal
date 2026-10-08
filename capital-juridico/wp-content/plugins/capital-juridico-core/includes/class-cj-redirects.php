@@ -150,12 +150,8 @@ class CJ_Redirects
         }
         // Artigo com slug alterado na importação: o importador registra o slug do Wix.
         if (preg_match('#^/post/([^/]+)/?$#', $path, $m)) {
-            $found = get_posts([
-                'post_type' => 'post', 'post_status' => 'publish', 'numberposts' => 1, 'fields' => 'ids',
-                'meta_key' => '_cj_slug_wix', 'meta_value' => rawurldecode($m[1]),
-            ]);
-            if ($found) {
-                self::go(get_permalink($found[0]));
+            if ($found = CJ_Importador_Wix::post_por_slug_wix(rawurldecode($m[1]), 'publish')) {
+                self::go(get_permalink($found));
             }
         }
         self::log($key);
