@@ -283,3 +283,4 @@ a.livro-capa, a.edicao-capa { text-decoration: none; }
   .acervo-titulo { font-size: 34px; line-height: 40px; }
   .pessoa-corpo { flex-direction: column; }
 }
+.dados--contato { max-width: 640px; margin-bottom: var(--space-6); font-size: 17px; }
