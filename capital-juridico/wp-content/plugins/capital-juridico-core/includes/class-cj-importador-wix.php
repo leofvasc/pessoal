@@ -565,15 +565,22 @@ class CJ_Importador_Wix
 
     private static function import_post(array $row, array $o): array
     {
-        $r = self::fetch($row['url']);
-        if ($r['code'] !== 200 || $r['body'] === '') {
-            return ['status' => 'erro', 'mensagem' => "HTTP {$r['code']} {$r['erro']}"];
+        // O Wix às vezes devolve uma página incompleta quando limita as requisições:
+        // sem o texto do artigo, espera e tenta outra vez.
+        for ($tentativa = 0; $tentativa < 3; $tentativa++) {
+            $r = self::fetch($row['url']);
+            if ($r['code'] !== 200 || $r['body'] === '') {
+                return ['status' => 'erro', 'mensagem' => "HTTP {$r['code']} {$r['erro']}"];
+            }
+            $doc = self::dom($r['body']);
+            [$metodo, $node] = self::find_body($doc);
+            if ($node) {
+                break;
+            }
+            sleep(5);
         }
-        $doc  = self::dom($r['body']);
         $meta = self::head_meta($doc);
         $ld   = self::article_ld($meta['jsonld']);
-
-        [$metodo, $node] = self::find_body($doc);
         [$cats, $tags] = self::taxonomies_from_links($doc, $node);
         $content = $node ? self::clean($node, $doc) : '';
         if ($content === '' && !empty($ld['articleBody'])) {
@@ -628,12 +635,13 @@ class CJ_Importador_Wix
         }
 
         $imgs = 0;
+        $novo = $o['imagens'] ? self::localize_media($content, $post_id, $imgs) : $content;
+        $novo = self::rewrite_internal_links($novo);
+        if ($novo !== $content) {
+            $wpdb->update($wpdb->posts, ['post_content' => $novo], ['ID' => $post_id]);
+            clean_post_cache($post_id);
+        }
         if ($o['imagens']) {
-            $novo = self::localize_media($content, $post_id, $imgs);
-            if ($novo !== $content) {
-                $wpdb->update($wpdb->posts, ['post_content' => $novo], ['ID' => $post_id]);
-                clean_post_cache($post_id);
-            }
             $capa = $meta['og_image'] ?: (is_string($ld['image'] ?? null) ? $ld['image'] : ($ld['image']['url'] ?? ''));
             if ($capa && ($thumb = self::sideload(self::wix_original($capa), $post_id))) {
                 set_post_thumbnail($post_id, $thumb);
@@ -804,7 +812,7 @@ class CJ_Importador_Wix
             if ($o['imagens']) {
                 $html = self::localize_media($html, $target, $n);
             }
-            wp_update_post(wp_slash(['ID' => $target, 'post_content' => $html]));
+            wp_update_post(wp_slash(['ID' => $target, 'post_content' => self::rewrite_internal_links($html)]));
             $aplicados[] = 'texto (' . number_format_i18n($texto) . ' car.' . ($n ? ", $n img" : '') . ')';
         }
         // Arquivos ligados na página (PDFs, formulários): copiados para que o endereço antigo redirecione.
@@ -820,6 +828,20 @@ class CJ_Importador_Wix
         $out['wp_id'] = $target;
         $out['mensagem'] = 'Aplicado à ' . $onde . ': ' . ($aplicados ? implode(', ', $aplicados) : 'nada novo (já preenchido)');
         return $out;
+    }
+
+    /**
+     * Links internos do site antigo (https://www.revistacapitaljuridico.com.br/post/x)
+     * passam a apontar para o domínio novo, sem depender do redirecionamento.
+     */
+    private static function rewrite_internal_links(string $html): string
+    {
+        $host = (string) wp_parse_url((string) get_option('cj_wix_site', ''), PHP_URL_HOST);
+        if ($host === '') {
+            return $html;
+        }
+        $nu = preg_quote(preg_replace('/^www\./', '', $host), '#');
+        return preg_replace_callback('#href="https?://(?:www\.)?' . $nu . '(/[^"]*)?"#i', fn($m) => 'href="' . esc_url(home_url($m[1] ?? '/')) . '"', $html);
     }
 
     /** Acrescenta um redirecionamento à lista manual (Configurações → Capital Jurídico), sem duplicar. */

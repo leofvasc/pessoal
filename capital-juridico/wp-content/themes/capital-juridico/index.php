@@ -22,6 +22,7 @@ $no_acervo = is_home() || is_category() || is_tag() || is_tax('cj_edicao');
         $pdf = (int) get_term_meta($t->term_id, 'cj_pdf', true);
         $pdf = $pdf ? wp_get_attachment_url($pdf) : get_term_meta($t->term_id, 'cj_pdf_link', true);
         ?>
+        <?php if ($periodo = get_term_meta($t->term_id, 'cj_periodo', true)) : ?><p class="artigo-autor"><?php echo esc_html(ucfirst($periodo)); ?> · ISSN <?php echo esc_html(cj_opt('cj_issn')); ?></p><?php endif; ?>
         <div class="conteudo"><?php echo wp_kses_post(term_description()); ?></div>
         <?php if ($pdf) : ?><p><a class="botao" href="<?php echo esc_url($pdf); ?>">Baixar a edição completa (PDF)</a></p><?php endif; ?>
     <?php elseif (is_archive()) : ?>

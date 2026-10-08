@@ -1,0 +1,7 @@
+# Alternativa ao redirecionamento feito pelo plugin.
+# Use somente se o domínio antigo for criado na Hostinger como site separado
+# (e não como domínio estacionado do site principal): coloque este arquivo
+# na pasta public_html desse site. Todo endereço antigo vai para o mesmo
+# caminho no domínio novo, com código 301 (permanente).
+RewriteEngine On
+RewriteRule ^(.*)$ https://capitaljur.com.br/$1 [R=301,L,NE]

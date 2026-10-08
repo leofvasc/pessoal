@@ -28,34 +28,58 @@ O importador lê o sitemap do Wix (inclusive o dos posts, que o índice do Wix d
 
 Endereços do Wix sem equivalente direto já redirecionam sozinhos: `/single-post/slug` vai para `/post/slug`, `/blog-feed.xml` vai para `/feed`, `/sitemap.xml` vai para `/wp-sitemap.xml`, e artigos cujo slug o WordPress precisou ajustar são redirecionados pelo slug original.
 
-## Passo a passo de implantação
+## Domínios
 
-1. Na Hostinger, contrate a hospedagem e crie o site com o instalador de WordPress em um **domínio temporário** (a Hostinger oferece um), sem mexer ainda no domínio `revistacapitaljuridico.com.br`, que continua apontando para o Wix.
-2. No WordPress, em **Configurações → Geral**, escolha o idioma Português do Brasil e o fuso horário de Rio Branco, e apague o post e a página de exemplo que o WordPress cria ("Olá, mundo!" e "Página de exemplo").
-3. Em **Plugins → Adicionar novo → Enviar plugin**, envie `dist/capital-juridico-core.zip` e ative.
-4. Em **Aparência → Temas → Adicionar novo → Enviar tema**, envie `dist/capital-juridico-tema.zip` e ative.
-5. Em **Configurações → Capital Jurídico**, preencha os textos, os contatos e a chave da OpenAI. Crie as chaves gratuitas do Cloudflare Turnstile em dash.cloudflare.com e cole-as ali.
-6. Em **Hotsites → Criar hotsite**, crie o `livro-ia`: título da obra, endereço `livro-ia`, envio do arquivo `livro-ia.js` do pacote do Wix, chatbot ligado, instruções coladas de `migracao/livro-ia/instrucoes-chatbot.txt` e base colada de `migracao/livro-ia/base-conhecimento.md`. Use "Testar conexão". Repita com o `coletanea-empresarial`.
-7. Crie os hotsites **antes** de importar, para que o importador aplique a eles o SEO que tinham no Wix.
-8. Em **Ferramentas → Importar do Wix**, clique em "1. Ler sitemap" e depois em "2. Importar pendentes", e deixe a página aberta até a mensagem "Importação concluída".
-9. Leia a tabela de resultados. Linhas com "texto curto" ou "erro" pedem conferência manual do artigo. Baixe o relatório CSV e guarde-o.
-10. Em **Posts → Edições da Revista**, confira os 13 números criados pelo importador. Os artigos sem número (dois, indicados no relatório) podem ser associados manualmente.
-11. Cadastre os livros em **Livros**, com capa e disponibilidade, e monte os menus em **Aparência → Menus**.
-12. Confira o texto importado para as normas (`/publique`) e para as páginas recriadas (eventos, vídeos, prêmio, seminário, CAMPIA), confira os dados da revista em **Configurações → Capital Jurídico** e escreva o conteúdo das páginas Sobre a editora, Publique seu livro, Contato e Política de privacidade (**Páginas**).
-13. Aponte o domínio `revistacapitaljuridico.com.br` para a Hostinger e ative o SSL gratuito no painel da Hostinger.
-14. Em **Configurações → Geral**, troque os dois endereços do site para `https://www.revistacapitaljuridico.com.br`. Use a mesma forma que o Wix usava, com `www`; mudar isso mudaria todos os endereços.
-15. Em **Ferramentas → Importar do Wix**, clique em "3. Verificar endereços no site novo". Todos os artigos devem responder 200. Cadastre redirecionamentos para o que aparecer com 404.
-16. No Google Search Console, envie `https://www.revistacapitaljuridico.com.br/wp-sitemap.xml` e acompanhe a cobertura nas semanas seguintes.
-17. Durante os primeiros meses, consulte o registro de 404 em **Configurações → Capital Jurídico** e crie redirecionamentos para os endereços antigos que ainda recebem visitas.
-18. Só cancele o plano do Wix depois que a verificação estiver limpa e o relatório CSV estiver guardado.
+O domínio principal passa a ser `capitaljur.com.br`. O domínio `revistacapitaljuridico.com.br` continua registrado e apontado para a mesma hospedagem, e todo acesso a ele (com ou sem `www`) é redirecionado com código 301 para o mesmo caminho no domínio novo: `revistacapitaljuridico.com.br/post/x` vai para `capitaljur.com.br/post/x`. O redirecionamento é feito pelo plugin (**Configurações → Capital Jurídico → Domínios**) e preserva caminho e parâmetros. Se a Hostinger não permitir apontar o domínio antigo para o mesmo site, a alternativa é o arquivo `dominio-antigo/.htaccess`.
 
-Se o domínio for transferido antes da importação, o site do Wix continua acessível pelo endereço gratuito `usuario.wixsite.com/…`. Nesse caso, informe esse endereço no campo do importador.
+O importador também reescreve, nos artigos e páginas, os links internos que apontavam para o domínio antigo, para que passem a apontar direto para o novo.
+
+## Passo a passo de instalação na Hostinger
+
+1. Conclua os passos 1 a 4 da lista de domínios (compra de `capitaljur.com.br` e apontamento para a Hostinger) antes de começar.
+2. Contrate na Hostinger um plano de hospedagem com WordPress (Premium ou Business).
+3. No hPanel, em **Sites → Adicionar site**, escolha WordPress e informe o domínio existente `capitaljur.com.br`. Defina usuário e senha do administrador.
+4. Em **Sites → Gerenciar → Avançado → Configuração do PHP**, escolha PHP 8.2 ou superior e ajuste `upload_max_filesize` e `post_max_size` para 64M e `max_execution_time` para 300.
+5. Em **Segurança → SSL**, instale o certificado gratuito para `capitaljur.com.br` e ative "Forçar HTTPS".
+6. Entre no WordPress (`capitaljur.com.br/wp-admin`). Em **Configurações → Geral**, escolha Português do Brasil, fuso de Rio Branco e confira que os dois endereços estão como `https://capitaljur.com.br`.
+7. Apague o post "Olá, mundo!" e a "Página de exemplo".
+8. Em **Plugins → Adicionar novo → Enviar plugin**, envie `dist/capital-juridico-core.zip` e ative.
+9. Em **Aparência → Temas → Adicionar novo → Enviar tema**, envie `dist/capital-juridico-tema.zip` e ative.
+10. Em **Configurações → Links permanentes**, apenas clique em "Salvar alterações" (isso grava as regras de endereço no servidor).
+11. Em **Configurações → Capital Jurídico**, confira textos, contatos, editor-chefe, mantenedora, dados da revista e domínios antigos; cole a chave da OpenAI e as chaves do Cloudflare Turnstile (crie-as em dash.cloudflare.com → Turnstile, cadastrando os dois domínios).
+12. Em **Hotsites → Criar hotsite**, crie `livro-ia` (arquivo `livro-ia.js`, chatbot ligado, instruções de `migracao/livro-ia/instrucoes-chatbot.txt` e base de `migracao/livro-ia/base-conhecimento.md`) e use "Testar conexão". Crie `coletanea-empresarial` com o código dessa obra.
+13. Em **Ferramentas → Importar do Wix**, mantenha o endereço `https://www.revistacapitaljuridico.com.br`, clique em "1. Ler sitemap" e depois em "2. Importar pendentes", e deixe a página aberta até "Importação concluída". Isso precisa ser feito enquanto o domínio antigo ainda aponta para o Wix.
+14. Leia a tabela de resultados; se houver linha com "erro", clique em "Marcar tudo para reimportar" e repita o passo 13. Baixe o relatório CSV e guarde-o.
+15. Confira **Posts → Edições da Revista** (13 números), **Livros** (5 obras) e as páginas recriadas (eventos, vídeos, prêmio, seminário, CAMPIA, edital), e escreva as páginas Sobre a editora, Publique seu livro, Contato e Política de privacidade.
+16. Em **Aparência → Menus**, monte os menus do topo e do rodapé; em **Aparência → Personalizar → Identidade do site**, envie o ícone do site.
+17. Faça os passos 5 a 10 da lista de domínios (domínio antigo).
+18. Em **Ferramentas → Importar do Wix**, clique em "3. Verificar endereços no site novo" e cadastre redirecionamentos para o que não responder 200 ou 301.
+19. Em **Sites → Gerenciar → Backups**, confirme que os backups automáticos estão ativos.
+20. Nos meses seguintes, consulte o registro de endereços não encontrados em **Configurações → Capital Jurídico** e crie redirecionamentos para os que ainda recebem visitas.
+
+## Passo a passo de configuração dos domínios
+
+1. Na Locaweb, registre `capitaljur.com.br` e mantenha a gestão de DNS na Locaweb (não troque os servidores DNS para a Hostinger, para não afetar e-mails ou outros serviços).
+2. No hPanel da Hostinger, depois de adicionar o site (passo 3 da instalação), anote o endereço IP do site (em **Sites → Gerenciar → Painel**, campo "IP do site").
+3. No painel da Locaweb, na zona DNS de `capitaljur.com.br`, crie o registro A de `@` apontando para o IP da Hostinger e o registro CNAME de `www` apontando para `capitaljur.com.br`. Remova registros A ou CNAME antigos de `@` e `www` que apontem para outro lugar.
+4. Aguarde a propagação (de minutos a 24 horas) e confirme que `capitaljur.com.br` abre a hospedagem da Hostinger; só então instale o SSL (passo 5 da instalação).
+5. Antes de mexer no domínio antigo, conclua a importação do Wix (passo 13 da instalação) e confirme o relatório.
+6. No hPanel, em **Domínios → Domínios estacionados** do site `capitaljur.com.br`, adicione `revistacapitaljuridico.com.br`. Se a Hostinger não oferecer essa opção no seu plano, crie `revistacapitaljuridico.com.br` como site separado e coloque nele o arquivo `dominio-antigo/.htaccess`.
+7. No painel da Locaweb, na zona DNS de `revistacapitaljuridico.com.br`, substitua os registros que apontam para o Wix: o registro A de `@` passa a apontar para o IP da Hostinger, e o registro de `www` passa a ser CNAME para `revistacapitaljuridico.com.br`. Não altere os registros MX nem TXT de e-mail.
+8. Após a propagação, instale no hPanel o SSL também para `revistacapitaljuridico.com.br` e `www.revistacapitaljuridico.com.br`. Sem esse certificado, quem acessa os endereços antigos com `https` (que é como o Google os conhece) vê um aviso de segurança antes do redirecionamento.
+9. Teste no navegador: `https://www.revistacapitaljuridico.com.br/post/ia-juridica-e-software-de-plagio` deve abrir `https://capitaljur.com.br/post/ia-juridica-e-software-de-plagio`; `https://revistacapitaljuridico.com.br/numero01` deve abrir `https://capitaljur.com.br/numero01`.
+10. No Wix, só depois dos testes, desconecte o domínio do site e encerre o plano.
+11. No Google Search Console, adicione a propriedade de domínio `capitaljur.com.br` (verificação por registro TXT na zona DNS da Locaweb) e envie o sitemap `https://capitaljur.com.br/wp-sitemap.xml`.
+12. No Search Console, na propriedade de `revistacapitaljuridico.com.br` (crie-a e verifique-a pelo DNS, se ainda não existir), use **Configurações → Mudança de endereço** e indique `capitaljur.com.br`.
+13. Comunique o novo endereço da revista ao IBICT (centro brasileiro do ISSN), porque o registro do ISSN 2763-9959 informa a URL do periódico.
+14. Atualize o endereço nos perfis e cadastros externos (Instagram, Lattes, assinaturas de e-mail, Google Meu Negócio, se houver).
+15. Mantenha `revistacapitaljuridico.com.br` registrado e renovado indefinidamente; os redirecionamentos só funcionam enquanto o domínio antigo existir e apontar para a Hostinger.
 
 ## Pontos de atenção
 
-Para que o importador alcance o site antigo a partir de um ambiente com rede restrita, é preciso liberar `www.revistacapitaljuridico.com.br`, e não só `revistacapitaljuridico.com.br`, porque o Wix redireciona todas as páginas para o endereço com `www`. No servidor da Hostinger não há essa restrição.
+O importador foi testado contra o site real: dos 97 artigos, todos foram recriados com o mesmo endereço, e os 13 números, os 5 livros, as páginas e os PDFs foram migrados. Nesse teste, as imagens hospedadas em `static.wixstatic.com` não puderam ser baixadas por restrição de rede do ambiente de desenvolvimento; na Hostinger elas serão copiadas normalmente. Mesmo assim, confira algumas imagens de artigos depois da importação.
 
-O importador procura o texto do artigo nos marcadores que o Wix usa no HTML dos posts (`data-hook="post-description"` e, em seguida, outros mais genéricos). Ele foi testado contra uma simulação desse HTML, não contra o site real, porque o ambiente em que foi desenvolvido não tinha acesso ao domínio. Rode a importação primeiro no domínio temporário e confira alguns artigos antes de mudar o domínio.
+A troca do domínio principal tem um custo de SEO, ainda que pequeno e temporário. Com redirecionamento 301 página a página e a ferramenta de mudança de endereço do Search Console, o Google transfere os sinais do domínio antigo para o novo, mas é comum uma oscilação de posições por algumas semanas. Os redirecionamentos devem ser mantidos permanentemente.
 
 O Cloudflare Turnstile substitui o reCAPTCHA nativo do Wix. Sem as duas chaves, o chatbot funciona apenas com o limite diário por hotsite e com o limite de 40 perguntas por hora por endereço IP.
 

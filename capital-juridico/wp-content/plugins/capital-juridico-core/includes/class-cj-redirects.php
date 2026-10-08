@@ -20,6 +20,53 @@ class CJ_Redirects
     {
         add_action('template_redirect', [__CLASS__, 'handle'], 5);
         add_action('parse_request', [__CLASS__, 'sitemap'], 0);
+        add_action('plugins_loaded', [__CLASS__, 'dominio_antigo'], 0);
+        add_filter('request', [__CLASS__, 'normalizar_termos']);
+    }
+
+    /**
+     * Categorias e tags com acento (/artigos/categories/direito-público): o slug é
+     * gravado codificado (direito-p%c3%bablico), mas o endereço pode chegar decodificado.
+     */
+    public static function normalizar_termos(array $vars): array
+    {
+        foreach (['category_name', 'tag'] as $k) {
+            if (!empty($vars[$k]) && preg_match('/[^\x20-\x7E]|%[0-9A-F]{2}/', $vars[$k])) {
+                $vars[$k] = implode('/', array_map(
+                    fn($p) => sanitize_title_with_dashes(rawurldecode($p), '', 'save'),
+                    explode('/', $vars[$k])
+                ));
+            }
+        }
+        return $vars;
+    }
+
+    /**
+     * Domínio antigo → domínio principal, preservando caminho e parâmetros:
+     * revistacapitaljuridico.com.br/post/x → capitaljur.com.br/post/x (301).
+     * Também unifica www e sem www do domínio principal.
+     */
+    public static function dominio_antigo(): void
+    {
+        if ((defined('WP_CLI') && WP_CLI) || wp_doing_cron() || empty($_SERVER['HTTP_HOST'])) {
+            return;
+        }
+        $host     = strtolower(preg_replace('/:\d+$/', '', (string) $_SERVER['HTTP_HOST']));
+        $home     = (string) home_url('/');
+        $principal = strtolower((string) wp_parse_url($home, PHP_URL_HOST));
+        if ($host === '' || $host === $principal) {
+            return;
+        }
+        $antigos = array_filter(array_map(fn($d) => strtolower(trim($d)), preg_split('/\R/', CJ_Settings::get('cj_dominios_antigos'))));
+        $variante = $host === 'www.' . $principal || $principal === 'www.' . $host;
+        if (!$variante && !in_array($host, $antigos, true)) {
+            return;
+        }
+        $porta = wp_parse_url($home, PHP_URL_PORT);
+        $base  = wp_parse_url($home, PHP_URL_SCHEME) . '://' . $principal . ($porta ? ':' . $porta : '');
+        header('Cache-Control: max-age=86400');
+        wp_redirect($base . ($_SERVER['REQUEST_URI'] ?? '/'), 301, 'Capital Juridico');
+        exit;
     }
 
     /** O sitemap do Wix ficava em /sitemap.xml; o do WordPress fica em /wp-sitemap.xml. */
