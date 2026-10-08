@@ -727,6 +727,11 @@ class CJ_Importador_Wix
     private static function import_page(array $row, array $o): array
     {
         $path  = trim(rawurldecode($row['path']), '/');
+        // Páginas de categoria e de tag não viram páginas: o WordPress as gera no mesmo
+        // endereço (/artigos/categories/… e /artigos/tags/…) a partir dos artigos importados.
+        if ($row['tipo'] === 'categoria') {
+            return ['status' => 'registrado', 'mensagem' => 'Categoria ou tag: o endereço é mantido automaticamente pelos artigos importados'];
+        }
         $regra = self::dados()['paginas'][$path] ?? [];
         $acao  = $regra['acao'] ?? '';
 
@@ -772,6 +777,9 @@ class CJ_Importador_Wix
             $onde = 'hotsite';
         } elseif ($page = get_page_by_path($path)) {
             $target = $page->ID;
+        } elseif (str_contains($path, '/')) {
+            $out['mensagem'] = 'Endereço com subpasta sem equivalente no site novo: cadastre um redirecionamento, se necessário';
+            return $out;
         } elseif ($texto < 80) {
             $out['mensagem'] = 'Página sem texto no Wix (provável hotsite ou elemento personalizado): crie um hotsite com o endereço /' . $path;
             return $out;
