@@ -2,10 +2,12 @@
 /** Artigo da revista: /post/slug (endereço preservado do Wix). */
 get_header();
 ?>
-<main id="conteudo" class="wrap pagina artigo">
+<main id="conteudo">
+<?php get_template_part('template-parts/acervo-cabecalho'); ?>
+<div class="wrap pagina artigo">
     <?php while (have_posts()) : the_post();
         $ed = get_the_terms(get_the_ID(), 'cj_edicao'); ?>
-        <p class="sobretitulo"><a href="<?php echo esc_url(home_url('/numerosanteriores')); ?>">Acervo</a><?php if ($ed && !is_wp_error($ed)) : ?> · <a href="<?php echo esc_url(get_term_link($ed[0])); ?>"><?php echo esc_html($ed[0]->name); ?></a><?php endif; ?></p>
+        <?php if ($ed && !is_wp_error($ed)) : ?><p class="sobretitulo"><a href="<?php echo esc_url(get_term_link($ed[0])); ?>"><?php echo esc_html($ed[0]->name); ?></a></p><?php endif; ?>
         <h1 class="pagina-titulo"><?php the_title(); ?></h1>
         <p class="artigo-autor"><?php echo esc_html(cj_autoria()); ?> · <time datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html(cj_data((int) get_post_timestamp())); ?></time></p>
         <div class="conteudo"><?php the_content(); ?></div>
@@ -20,5 +22,6 @@ get_header();
         the_tags('<p class="miudo">Hashtags: ', ', ', '</p>');
         the_post_navigation(['prev_text' => '← %title', 'next_text' => '%title →']);
     endwhile; ?>
+</div>
 </main>
 <?php get_footer();

@@ -250,3 +250,36 @@ h1, h2, h3, h4 { font-family: var(--font-display); color: var(--ink); }
 a.livro-capa, a.edicao-capa { text-decoration: none; }
 .rodape .miudo, .rodape-base { color: var(--on-inverse); }
 .livro-ficha-capa .capa-vazia { aspect-ratio: 16 / 23; box-shadow: var(--shadow-book); }
+
+/* Acervo histórico da Revista Capital Jurídico */
+.acervo-faixa { background: var(--surface-paper); border-bottom: var(--stroke-hairline) solid var(--ink); padding: var(--space-5) 0 0; }
+.acervo-faixa--completa { padding-top: var(--space-8); }
+.acervo-titulo { font: 400 44px/48px var(--font-display); letter-spacing: -.005em; margin: 0 0 var(--space-3); }
+.acervo-titulo--compacto { font: 500 22px/28px var(--font-display); margin: 0 0 var(--space-2); }
+.acervo-titulo a { color: var(--ink); text-decoration: none; }
+.acervo-titulo a:hover { color: var(--accent); }
+.acervo-situacao { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); font: 400 13px/18px var(--font-ui); color: var(--ink-muted); margin: 0 0 var(--space-4); }
+.acervo-faixa .cj-rule { max-width: 120px; margin: var(--space-5) 0; color: var(--ink); }
+.acervo-texto { font: 400 18px/30px var(--font-text); max-width: var(--layout-measure); margin: 0 0 var(--space-6); }
+.acervo-nav { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); }
+.acervo-nav a { font: 600 15px/20px var(--font-ui); color: var(--ink); text-decoration: none; padding: var(--space-3) 0; border-bottom: var(--stroke-medium) solid transparent; margin-bottom: -1px; }
+.acervo-nav a:hover { color: var(--accent); }
+.acervo-nav a[aria-current] { border-bottom-color: var(--ink); }
+.acervo-faixa + .pagina { padding-top: var(--space-7); }
+.edicao h3 { font: 600 20px/26px var(--font-display); margin: var(--space-3) 0 var(--space-1); }
+.edicao h3 a { color: var(--ink); text-decoration: none; }
+.dados--expediente { max-width: 760px; margin-bottom: var(--space-6); }
+
+/* Editor-chefe e mantenedora */
+.pessoa { max-width: 760px; margin-top: var(--space-7); }
+.pessoa .cj-rule { margin-bottom: var(--space-4); color: var(--ink); }
+.pessoa-corpo { display: flex; gap: var(--space-5); align-items: flex-start; }
+.pessoa-foto { width: 140px; height: auto; aspect-ratio: 1; object-fit: cover; }
+.pessoa-nome { font: 500 26px/32px var(--font-display); margin: 0 0 var(--space-2); }
+.pessoa-bio { font: 400 16px/26px var(--font-text); margin: 0 0 var(--space-2); }
+.rodape-mantenedora { margin-top: var(--space-4) !important; max-width: 440px; }
+.rodape-mantenedora a { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 860px) {
+  .acervo-titulo { font-size: 34px; line-height: 40px; }
+  .pessoa-corpo { flex-direction: column; }
+}

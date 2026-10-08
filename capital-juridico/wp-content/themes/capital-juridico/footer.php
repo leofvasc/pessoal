@@ -3,7 +3,8 @@
         <div>
             <p class="rodape-logo"><img src="<?php echo esc_url(get_template_directory_uri() . '/assets/img/logo-horizontal-negativo.png'); ?>" width="944" height="200" alt="<?php echo esc_attr(get_bloginfo('name')); ?>"></p>
             <p><?php echo esc_html(cj_opt('cj_chamada')); ?></p>
-            <?php if ($cnpj = cj_opt('cj_cnpj')) : ?><p class="miudo">CNPJ <?php echo esc_html($cnpj); ?></p><?php endif; ?>
+            <?php if ($m = cj_mantenedora_html()) : ?><p class="rodape-mantenedora"><?php echo $m; // phpcs:ignore -- escapado na função. ?></p><?php endif; ?>
+            <?php if ($cnpj = cj_opt('cj_cnpj')) : ?><p class="miudo">CNPJ da editora <?php echo esc_html($cnpj); ?></p><?php endif; ?>
         </div>
         <div>
             <p class="rodape-titulo">Contato</p>

@@ -205,6 +205,27 @@ class CJ_SEO
         if ($logo = get_site_icon_url(512)) {
             $org['logo'] = $logo;
         }
+        if ($mant = CJ_Settings::get('cj_mantenedora')) {
+            $org['parentOrganization'] = array_filter([
+                '@type'  => 'Organization',
+                'name'   => $mant,
+                'url'    => CJ_Settings::get('cj_mantenedora_url'),
+                'taxID'  => CJ_Settings::get('cj_mantenedora_cnpj'),
+            ]);
+        }
+        $periodico = [
+            '@context'    => 'https://schema.org',
+            '@type'       => 'Periodical',
+            'name'        => CJ_Settings::get('cj_titulo_periodico'),
+            'issn'        => CJ_Settings::get('cj_issn'),
+            'url'         => home_url('/numerosanteriores'),
+            'publisher'   => $org,
+            'inLanguage'  => 'pt-BR',
+            'description' => CJ_Settings::get('cj_aviso_revista'),
+        ];
+        if ($id && in_array(get_post_field('post_name', $id), ['numerosanteriores', 'expediente', 'publique'], true)) {
+            return [$periodico];
+        }
         if (is_front_page()) {
             return [array_merge(['@context' => 'https://schema.org'], $org, ['@type' => ['Organization', 'Publisher']]), [
                 '@context' => 'https://schema.org', '@type' => 'WebSite', 'name' => get_bloginfo('name'), 'url' => home_url('/'),

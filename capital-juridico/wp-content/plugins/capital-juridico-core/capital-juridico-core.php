@@ -57,13 +57,17 @@ function cj_core_activate(): void
     update_option('category_base', 'blog/categories');
     update_option('tag_base', 'blog/hashtags');
 
+    // Endereços herdados do Wix: /publique e /sobre eram páginas da revista.
+    // /publique continua sendo as normas da revista (dentro do acervo); a editora
+    // recebe originais em /publique-seu-livro.
     $pages = [
-        'sobre'             => 'Sobre a editora',
-        'publique'          => 'Publique conosco',
-        'numerosanteriores' => 'Acervo de publicações',
-        'blog'              => 'Acervo de artigos',
-        'lancamentos'       => 'Lançamentos',
-        'contato'           => 'Contato',
+        'sobre'              => 'Sobre a editora',
+        'publique-seu-livro' => 'Publique seu livro',
+        'numerosanteriores'  => 'Revista Capital Jurídico — acervo histórico',
+        'publique'           => 'Normas para publicação da Revista Capital Jurídico',
+        'blog'               => 'Artigos da Revista Capital Jurídico',
+        'lancamentos'        => 'Lançamentos',
+        'contato'            => 'Contato',
         'politica-de-privacidade' => 'Política de privacidade',
     ];
     foreach ($pages as $slug => $title) {
@@ -76,6 +80,17 @@ function cj_core_activate(): void
                 'post_content' => '',
             ]);
         }
+    }
+    $acervo = get_page_by_path('numerosanteriores');
+    if ($acervo && !get_page_by_path('numerosanteriores/expediente')) {
+        wp_insert_post([
+            'post_type'   => 'page',
+            'post_status' => 'publish',
+            'post_name'   => 'expediente',
+            'post_parent' => $acervo->ID,
+            'post_title'  => 'Expediente da Revista Capital Jurídico',
+            'post_content' => '',
+        ]);
     }
     $blog = get_page_by_path('blog');
     if ($blog && !get_option('page_for_posts')) {

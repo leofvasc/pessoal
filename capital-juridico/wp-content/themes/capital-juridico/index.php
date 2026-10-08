@@ -1,9 +1,13 @@
 <?php
 /** Lista de artigos (/blog), categorias (/blog/categories/…), hashtags e busca. */
 get_header();
+$no_acervo = is_home() || is_category() || is_tag() || is_tax('cj_edicao');
 ?>
-<main id="conteudo" class="wrap pagina">
-    <p class="sobretitulo">Acervo</p>
+<main id="conteudo">
+<?php if ($no_acervo) {
+    get_template_part('template-parts/acervo-cabecalho');
+} ?>
+<div class="wrap pagina">
     <h1 class="pagina-titulo"><?php
         if (is_search()) {
             printf('Resultados para “%s”', esc_html(get_search_query()));
@@ -32,5 +36,6 @@ get_header();
         <?php endif; ?>
     </div>
     <?php the_posts_pagination(['prev_text' => '← Anteriores', 'next_text' => 'Próximos →']); ?>
+</div>
 </main>
 <?php get_footer();

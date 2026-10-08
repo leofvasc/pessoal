@@ -705,7 +705,13 @@ class CJ_Importador_Wix
         $target = 0;
         $onde = '';
         $paths = (array) get_option('cj_hotsite_paths', []);
-        if ($path === '') {
+        // Páginas do Wix cujo conteúdo muda de lugar no site novo: o "Sobre a revista"
+        // antigo vira o expediente do acervo, e /sobre passa a apresentar a editora.
+        $mapa = (array) apply_filters('cj_wix_page_map', ['sobre' => 'numerosanteriores/expediente']);
+        if (isset($mapa[$path]) && ($mapped = get_page_by_path($mapa[$path]))) {
+            $target = $mapped->ID;
+            $onde = 'página ' . $mapa[$path];
+        } elseif ($path === '') {
             $target = (int) get_option('page_on_front');
             $onde = 'página inicial';
         } elseif (isset($paths[$path])) {
@@ -730,8 +736,22 @@ class CJ_Importador_Wix
                     $aplicados[] = 'imagem';
                 }
             }
+            // Texto da página: só preenche páginas ainda vazias (nunca sobrescreve o que foi escrito).
+            $front = (int) get_option('page_on_front');
+            if (get_post_type($target) === 'page' && $target !== $front && trim((string) get_post_field('post_content', $target)) === '') {
+                $main = (new DOMXPath($doc))->query('//main')->item(0);
+                $html = $main ? self::clean($main, $doc) : '';
+                if (mb_strlen(wp_strip_all_tags($html)) > 80) {
+                    $n = 0;
+                    if ($o['imagens']) {
+                        $html = self::localize_media($html, $target, $n);
+                    }
+                    wp_update_post(wp_slash(['ID' => $target, 'post_content' => $html]));
+                    $aplicados[] = 'texto (' . number_format_i18n(mb_strlen(wp_strip_all_tags($html))) . ' car.)';
+                }
+            }
             $out['wp_id'] = $target;
-            $out['mensagem'] = $aplicados ? 'SEO aplicado à ' . $onde . ': ' . implode(', ', $aplicados) : 'SEO já preenchido na ' . $onde . '; mantido';
+            $out['mensagem'] = $aplicados ? 'Aplicado à ' . $onde . ': ' . implode(', ', $aplicados) : 'SEO já preenchido na ' . $onde . '; mantido';
         } elseif ($row['tipo'] === 'categoria') {
             $out['mensagem'] = 'Endereço de categoria/hashtag: mantido automaticamente se algum artigo usar a categoria';
         } else {

@@ -20,7 +20,7 @@ $artigos = new WP_Query(['post_type' => 'post', 'posts_per_page' => 4, 'ignore_s
             <p class="hero-texto"><?php echo esc_html(cj_opt('cj_apresentacao')); ?></p>
             <p class="acoes">
                 <a class="botao" href="<?php echo esc_url(get_post_type_archive_link('cj_livro') ?: home_url('/livros')); ?>">Ver o catálogo</a>
-                <a class="botao botao-acento" href="<?php echo esc_url(home_url('/publique')); ?>">Publique seu livro</a>
+                <a class="botao botao-acento" href="<?php echo esc_url(home_url('/publique-seu-livro')); ?>">Publique seu livro</a>
             </p>
         </div>
     </section>
@@ -70,20 +70,21 @@ $artigos = new WP_Query(['post_type' => 'post', 'posts_per_page' => 4, 'ignore_s
             <div>
                 <h2 class="secao-titulo">Publique conosco</h2>
                 <p>Recebemos originais de obras individuais e coletivas, teses, dissertações e coletâneas jurídicas. Conheça as etapas e envie sua proposta.</p>
-                <p><a class="botao" href="<?php echo esc_url(home_url('/publique')); ?>">Como publicar</a>
+                <p><a class="botao" href="<?php echo esc_url(home_url('/publique-seu-livro')); ?>">Como publicar</a>
                 <?php if ($w = cj_whatsapp_url('Olá! Gostaria de informações sobre publicação de livro.')) : ?>
                     <a class="botao botao-linha" href="<?php echo esc_url($w); ?>" rel="noopener">Falar pelo WhatsApp</a>
                 <?php endif; ?></p>
             </div>
             <div>
-                <h2 class="secao-titulo">Acervo de artigos</h2>
+                <h2 class="secao-titulo">Revista Capital Jurídico</h2>
+                <p><span class="selo selo-aviso">Periódico descontinuado</span> <span class="miudo">ISSN <?php echo esc_html(cj_opt('cj_issn')); ?></span></p>
                 <p><?php echo esc_html(cj_opt('cj_aviso_revista')); ?></p>
                 <ul class="lista-simples">
                     <?php while ($artigos->have_posts()) : $artigos->the_post(); ?>
                         <li><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></li>
                     <?php endwhile; wp_reset_postdata(); ?>
                 </ul>
-                <p><a class="botao botao-linha" href="<?php echo esc_url(home_url('/numerosanteriores')); ?>">Acessar o acervo</a></p>
+                <p><a class="botao botao-linha" href="<?php echo esc_url(home_url('/numerosanteriores')); ?>">Acessar o acervo da revista</a></p>
             </div>
         </div>
     </section>

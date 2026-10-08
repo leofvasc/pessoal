@@ -47,8 +47,8 @@ function cj_menu_padrao(): void
     $itens = [
         home_url('/livros')            => 'Catálogo',
         home_url('/lancamentos')       => 'Lançamentos',
-        home_url('/publique')          => 'Publique',
-        home_url('/numerosanteriores') => 'Acervo',
+        home_url('/publique-seu-livro') => 'Publique',
+        home_url('/numerosanteriores') => 'Revista (acervo)',
         home_url('/sobre')             => 'Sobre',
     ];
     $atual = untrailingslashit((string) strtok((string) ($_SERVER['REQUEST_URI'] ?? ''), '?'));
@@ -120,6 +120,19 @@ function cj_referencia_artigo(int $post_id): string
     }
     $partes[] = esc_html(get_the_date('Y', $post_id)) . '. ISSN ' . esc_html(cj_opt('cj_issn'));
     return implode(', ', $partes) . '. Disponível em: ' . esc_html(get_permalink($post_id)) . '. Acesso em: ' . esc_html(cj_data(time(), true)) . '.';
+}
+
+/** "A Capital Jurídico é mantida pelo Instituto …, CNPJ …" com link para o site da mantenedora. */
+function cj_mantenedora_html(): string
+{
+    $nome = cj_opt('cj_mantenedora');
+    if ($nome === '') {
+        return '';
+    }
+    $url  = cj_opt('cj_mantenedora_url');
+    $cnpj = cj_opt('cj_mantenedora_cnpj');
+    $link = $url ? '<a href="' . esc_url($url) . '" rel="noopener">' . esc_html($nome) . '</a>' : esc_html($nome);
+    return 'A Editora ' . esc_html(get_bloginfo('name')) . ' é mantida pelo ' . $link . ($cnpj ? ', CNPJ ' . esc_html($cnpj) : '') . '.';
 }
 
 /** Link de WhatsApp a partir da configuração. */
