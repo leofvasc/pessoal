@@ -603,7 +603,8 @@ class CJ_Importador_Wix
 
         $existing = get_posts(['post_type' => 'post', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'meta_key' => '_cj_url_wix', 'meta_value' => $row['url']]);
         if (!$existing) {
-            $existing = get_posts(['post_type' => 'post', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'name' => sanitize_title($slug_wix)]);
+            // Comparação exata do slug: o Wix tem artigos que diferem só no acento ("a-forca-…" e "a-força-…").
+            $existing = get_posts(['post_type' => 'post', 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids', 'meta_key' => '_cj_slug_wix', 'meta_value' => $slug_wix]);
         }
         $gmt = $data ? gmdate('Y-m-d H:i:s', strtotime($data)) : current_time('mysql', true);
         $gmt_mod = $mod ? gmdate('Y-m-d H:i:s', strtotime($mod)) : $gmt;
