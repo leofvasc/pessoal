@@ -39,7 +39,7 @@ O importador também reescreve, nos artigos e páginas, os links internos que ap
 1. Contrate na Hostinger um plano de hospedagem com WordPress (Premium ou Business).
 2. Faça os passos 1 e 2 da lista de domínios (registro de `capitaljur.com.br` na própria Hostinger).
 3. No hPanel, em **Sites → Adicionar site**, escolha WordPress e selecione o domínio `capitaljur.com.br`. Defina usuário e senha do administrador.
-4. Em **Sites → Gerenciar → Avançado → Configuração do PHP**, escolha PHP 8.2 ou superior e ajuste `upload_max_filesize` e `post_max_size` para 64M e `max_execution_time` para 300.
+4. Confira a versão do PHP: em **Sites**, clique em **Painel** (ou **Gerenciar**) ao lado do site, digite "PHP" na busca da barra lateral e abra **Configuração do PHP**; na aba da versão, escolha 8.2 ou superior e clique em **Atualizar**. Os limites de envio e de tempo de execução da Hostinger já vêm no máximo do plano e não precisam ser alterados; se a opção não aparecer, siga adiante e confira a versão depois, no WordPress, em **Ferramentas → Saúde do site → Informações → Servidor** (o plugin exige PHP 8.0 ou superior).
 5. Depois de confirmar que `capitaljur.com.br` abre o site (passos 3 e 4 da lista de domínios), vá em **Segurança → SSL**, instale o certificado gratuito para `capitaljur.com.br` e ative "Forçar HTTPS".
 6. Entre no WordPress (`capitaljur.com.br/wp-admin`). Em **Configurações → Geral**, escolha Português do Brasil, fuso de Rio Branco e confira que os dois endereços estão como `https://capitaljur.com.br`.
 7. Apague o post "Olá, mundo!" e a "Página de exemplo".
