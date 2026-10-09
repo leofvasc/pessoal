@@ -75,7 +75,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); color: var(--ink); }
 .admin-bar .topo { top: 32px; }
 .topo-inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); min-height: 76px; }
 .marca { display: inline-flex; line-height: 0; }
-.marca img { height: 34px; width: auto; }
+.marca img { height: 39px; width: auto; }
 .nav .menu { list-style: none; display: flex; gap: var(--space-2) var(--space-5); margin: 0; padding: 0; flex-wrap: wrap; align-items: center; }
 .nav a { font: 600 15px/20px var(--font-ui); color: var(--ink); text-decoration: none; padding: var(--space-1) 0; border-bottom: var(--stroke-medium) solid transparent; display: inline-block; }
 .nav a:hover { color: var(--accent); }
@@ -231,7 +231,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); color: var(--ink); }
   .nav.aberto { display: block; }
   .nav .menu { flex-direction: column; align-items: stretch; gap: 0; }
   .nav a { display: block; padding: var(--space-3) 0; border-bottom: var(--stroke-hairline) solid var(--rule-soft); }
-  .marca img { height: 28px; }
+  .marca img { height: 32px; }
   .hero { padding: var(--space-8) 0 var(--space-7); }
   .hero h1 { font-size: 34px; line-height: 40px; }
   .pagina-titulo, .secao-titulo { font-size: 28px; line-height: 34px; }
