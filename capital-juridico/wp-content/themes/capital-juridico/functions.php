@@ -99,6 +99,23 @@ function cj_autores_abnt(string $autores): string
     return implode('; ', $saida);
 }
 
+/**
+ * Autoria resumida para os cartões do catálogo. Obra com organização mostra os
+ * organizadores; com mais de três nomes, mostra os três primeiros e "et al.".
+ * A página do livro continua exibindo a lista completa.
+ */
+function cj_autoria_curta(int $post_id): string
+{
+    $org = trim((string) get_post_meta($post_id, '_cj_organizadores', true));
+    $lista = $org !== '' ? $org : trim((string) get_post_meta($post_id, '_cj_autores', true));
+    $nomes = array_values(array_filter(array_map('trim', preg_split('/\s*[;,]\s*|\s+e\s+(?=[A-ZÀ-Ý])/u', $lista))));
+    if (!$nomes) {
+        return '';
+    }
+    $texto = count($nomes) > 3 ? implode(', ', array_slice($nomes, 0, 3)) . ' et al.' : implode(', ', $nomes);
+    return ($org !== '' ? (count($nomes) > 1 ? 'Orgs.: ' : 'Org.: ') : '') . $texto;
+}
+
 /** Referência ABNT do artigo; o campo "Referência (ABNT)" do painel, se preenchido, prevalece. */
 function cj_referencia_artigo(int $post_id): string
 {

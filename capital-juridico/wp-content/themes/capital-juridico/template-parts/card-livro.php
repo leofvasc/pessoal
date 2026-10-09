@@ -13,8 +13,8 @@ $acoes = class_exists('CJ_Livros') ? CJ_Livros::acoes($id) : [];
     </a>
     <div class="livro-info">
         <h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
-        <?php if ($a = get_post_meta($id, '_cj_autores', true) ?: get_post_meta($id, '_cj_organizadores', true)) : ?>
-            <p class="livro-autor"><?php echo esc_html(str_replace(';', ',', $a)); ?></p>
+        <?php if ($a = cj_autoria_curta($id)) : ?>
+            <p class="livro-autor"><?php echo esc_html($a); ?></p>
         <?php endif; ?>
         <ul class="selos">
             <?php foreach ($acoes as $ac) : ?>
